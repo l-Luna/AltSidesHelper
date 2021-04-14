@@ -8,12 +8,15 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
+using Mono.Cecil;
 
 namespace DSidesHelper {
 	public class DSidesModule : EverestModule {
 
 		public static DSidesModule Instance;
 		public static int MaxSides = 4; // TODO: add proper API for setting max sides
+		private static int prog = 0;
+		private static Dictionary<int, ModeProperties> HeldDSides = new Dictionary<int, ModeProperties>();
 
 		private static readonly Type t_OuiChapterPanelOption = typeof(OuiChapterPanel)
 			.GetNestedType("Option", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
@@ -113,11 +116,19 @@ namespace DSidesHelper {
 			 */
 			// TODO: do something more sane...
 			// use MaxSides
+			int index = 0;
 			foreach(var instr in ctx.Instrs) {
 				if(instr.OpCode == OpCodes.Ldc_I4_3) {
 					instr.OpCode = OpCodes.Ldc_I4_4;
 				}
+				// there's only one Logger.Log too
+				// at this point, D-Sides still exist, but they get removed at some point between then and the end of the method
+				// so I hold them somewhere until the end of the method
+				if(instr.OpCode == OpCodes.Call && instr.Operand is MethodReference method && method.Name.Equals("Log") && method.DeclaringType.Name.Equals("Logger")) {
+					index = ctx.IndexOf(instr);
+				}
 			}
+			ctx.At(index + 1).EmitDelegate<Call>(ShuffleDSide);
 		}
 
 		private void OnAreaDataLoad(On.Celeste.AreaData.orig_Load orig) {
@@ -132,12 +143,38 @@ namespace DSidesHelper {
 
 			int dsides = 0;
 			foreach(var map in AreaData.Areas) {
+				if(HeldDSides.ContainsKey(map.ID)) {
+					ModeProperties[] newMode = new ModeProperties[4];
+					for(int i = 0; i < map.Mode.Length; i++)
+						newMode[i] = map.Mode[i];
+					newMode[3] = HeldDSides[map.ID];
+					map.Mode = newMode;
+					// fix map data
+					if(newMode[3].MapData == null) {
+						newMode[3].MapData = new MapData(map.ToKey((AreaMode)3));
+					} else {
+						newMode[3].MapData.Area = map.ToKey((AreaMode)3);
+					}
+					// get heart poem
+					if(newMode[3].PoemID == null) {
+						newMode[3].PoemID = map.GetSID().DialogKeyify() + "_D";
+					}
+				}
 				if(map.Mode.Length >= 4)
 					dsides++;
-				Logger.Log("DSidesHelper", $"{map.SID} - {map.Mode.Length} sides");
 			}
-				
+			
 			Logger.Log("DSidesHelper", $"Found {dsides} maps with D-Sides, out of {AreaData.Areas.Count}.");
+		}
+
+		delegate void Call();
+
+		private void ShuffleDSide() {
+			if(AreaData.Areas[prog].Mode.Length >= 4) {
+				Logger.Log("DSidesHelper", "Found a D-Side!");
+				HeldDSides.Add(prog, AreaData.Areas[prog].Mode[3]);
+			}
+			prog++;
 		}
 	}
 }
