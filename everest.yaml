@@ -1,6 +1,6 @@
-﻿- Name: DSidesHelper
+﻿- Name: AltSidesHelper
   Version: 1.0.0
-  DLL: bin/Debug/DSidesHelper.dll
+  DLL: bin/Debug/AltSidesHelper.dll
   Dependencies:
     - Name: Everest
       Version: 1.0.0
