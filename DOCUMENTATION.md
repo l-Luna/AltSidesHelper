@@ -19,7 +19,7 @@ Sides:
 
 Here's the full list of attributes that are already functional that you can set in the A-Side meta, for each side:
  - `Map`: The ID of the map to be used - the map's path from `Maps/` minus `.bin`.
- - `Preset`: One of `a-side`, `b-side`, `c-side`, and `d-side`. Setting this overrides all attributes minus `Map` to follow that particular side, with `d-side` using assets provided by AltSidesHelper. These values are listed for each attribute.
+ - `Preset`: One of `a-side`, `b-side`, `c-side`, and `d-side`. Setting this overrides all attributes minus `Map` to follow that particular side, with `d-side` using assets provided by AltSidesHelper. You can leave this unset to set all values manually. These values are listed for each attribute.
  - `Label`: The dialog key of text that appears when this side is selected. (A-Side is `OVERWORLD_NORMAL`, B-Side is `OVERWORLD_REMIX`, C-Side is `OVERWORLD_REMIX2`, D-Side is `leppa_AltSidesHelper_overworld_remix3`.)
  - `Icon`: The image to be displayed on the chapter select panel for that side. (`menu/play`, `menu/remix`, `menu/rmx2`, `menu/leppa/AltSidesHelper/rmx3`)
  - `DeathsIcon`: The image to be used for the deaths counter. (`collectables/skullBlue`, `collectables/skullRed`, `collectables/skullGold`, `collectables/skullGold`)
