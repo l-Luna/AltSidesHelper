@@ -7,6 +7,8 @@ using MonoMod.Utils;
 using MonoMod.RuntimeDetour;
 using System.Collections.Generic;
 using Monocle;
+using System.Xml;
+using Microsoft.Xna.Framework;
 
 namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
@@ -30,6 +32,9 @@ namespace AltSidesHelper {
 		private static MethodInfo resetMethod = typeof(OuiChapterPanel)
 			.GetMethod("Reset", BindingFlags.NonPublic | BindingFlags.InvokeMethod | BindingFlags.Instance);
 
+		// heart display in chapter panel
+		public static SpriteBank HeartSpriteBank;
+
 		public AltSidesHelperModule() {
 			Instance = this;
 		}
@@ -42,6 +47,7 @@ namespace AltSidesHelper {
 			On.Celeste.AreaData.Load += OnAreaDataLoad;
 			On.Celeste.OuiChapterSelect.Added += OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart += OnChapterSelectIsStart;
+			On.Celeste.Poem.ctor += OnPoemConstruct;
 
 			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
 
@@ -71,6 +77,7 @@ namespace AltSidesHelper {
 			On.Celeste.AreaData.Load -= OnAreaDataLoad;
 			On.Celeste.OuiChapterSelect.Added -= OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart -= OnChapterSelectIsStart;
+			On.Celeste.Poem.ctor -= OnPoemConstruct;
 
 			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
 
@@ -80,6 +87,8 @@ namespace AltSidesHelper {
 		}
 
 		private void OnChapterPanelReset(On.Celeste.OuiChapterPanel.orig_Reset orig, OuiChapterPanel self) {
+			ResetCrystalHeart(self);
+			
 			var oldRealStats = self.RealStats;
 			var oldDisplayedStats = self.DisplayedStats;
 			
@@ -102,6 +111,70 @@ namespace AltSidesHelper {
 				self.RealStats = oldRealStats;
 				self.DisplayedStats = oldDisplayedStats;
 			}
+			CustomizeCrystalHeart(self);
+		}
+
+		// Copied from CollabUtils2: https://github.com/EverestAPI/CelesteCollabUtils2/blob/7b9cfbfa6551c68aad98273de4b7ba00dd29e22d/UI/InGameOverworldHelper.cs
+		// As = AltSides
+		private static void ResetCrystalHeart(OuiChapterPanel panel) {
+			DynData<OuiChapterPanel> panelData = new DynData<OuiChapterPanel>(panel);
+			if(panelData.Data.ContainsKey("AsHeartDirty") && panelData.Get<bool>("AsHeartDirty")) {
+				panel.Remove(panelData["heart"] as HeartGemDisplay);
+				panelData["heart"] = new HeartGemDisplay(0, false);
+				panel.Add(panelData["heart"] as HeartGemDisplay);
+				panelData["AsHeartDirty"] = false;
+			}
+		}
+
+		private static void CustomizeCrystalHeart(OuiChapterPanel panel) {
+			// customize heart gem icon
+			string animId = null;
+
+			// our sprite ID will be "AltSidesHelper_<heart sprite path keyified>"
+			// log duplicate entries for a map 
+			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(panel.Area))?.AltSideData?.For));
+			if(parentHelperMeta != null)
+				foreach(var mode in parentHelperMeta.Sides)
+					if(mode.Map.Equals(panel.Area.SID))
+						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+
+			if(animId != null) {
+				if(HeartSpriteBank.Has(animId)) {
+					Sprite heartSprite = HeartSpriteBank.Create(animId);
+					new DynData<OuiChapterPanel>(panel).Get<HeartGemDisplay>("heart").Sprites[0] = heartSprite;
+					heartSprite.CenterOrigin();
+					heartSprite.Play("spin");
+					new DynData<OuiChapterPanel>(panel)["AsHeartDirty"] = true;
+				}
+			}
+		}
+
+		private void OnPoemConstruct(On.Celeste.Poem.orig_ctor orig, Poem self, string text, int heartIndex, float heartAlpha) {
+			orig(self, text, heartIndex, heartAlpha);
+			// customize heart gem icon
+			string animId = null;
+
+			// our sprite ID will be "AltSidesHelper_<heart sprite path keyified>"
+			// log duplicate entries for a map 
+			var sid = (Engine.Scene as Level).Session.Area.SID;
+			Color? color = null;
+			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(sid))?.AltSideData?.For));
+			if(parentHelperMeta != null)
+				foreach(var mode in parentHelperMeta.Sides)
+					if(mode.Map.Equals(sid)) {
+						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+						if(!mode.PoemDisplayColor.Equals(""))
+							color = Calc.HexToColor(mode.PoemDisplayColor);
+					}
+
+			if(animId != null)
+				if(HeartSpriteBank.Has(animId)) {
+					HeartSpriteBank.CreateOn(self.Heart, animId);
+					self.Heart.Play("spin");
+					self.Heart.CenterOrigin();
+				}
+			if(color != null)
+				new DynData<Poem>(self)["Color"] = color;
 		}
 
 		private bool OnChapterPanelIsStart(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
@@ -162,7 +235,7 @@ namespace AltSidesHelper {
 
 		private static void AddExtraModes(OuiChapterPanel self) {
 			// check map meta for extra sides or side overrides
-			AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("DSidesHelperMeta");
+			AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
 			if(meta?.Sides != null) {
 				int siblings = ((IList)modesField.GetValue(self)).Count;
 				int oldModes = siblings;
@@ -191,7 +264,7 @@ namespace AltSidesHelper {
 							newOptn = DynamicData.New(t_OuiChapterPanelOption)(new {
 								Label = Dialog.Clean(mode.Label),
 								Icon = GFX.Gui[mode.Icon],
-								ID = "DSidesHelperMode_" + i.ToString(),
+								ID = "AltSidesHelperMode_" + i.ToString(),
 								Siblings = siblings > 5 ? siblings : 0
 							})
 						);
@@ -241,6 +314,8 @@ namespace AltSidesHelper {
 				data["TrueMode"] = option;
 
 				UpdateDataForTrueMode(self, option);
+				ResetCrystalHeart(self);
+				CustomizeCrystalHeart(self);
 			}
 		}
 
@@ -277,15 +352,18 @@ namespace AltSidesHelper {
 
 		private void OnAreaDataLoad(On.Celeste.AreaData.orig_Load orig) {
 			orig();
+			var heartTextures = new HashSet<string>();
 			foreach(var map in AreaData.Areas) {
-				// Load "mapdir/mapname.dsideshelper.meta.yaml" as a DSidesHelperMode[]
+				// Load "mapdir/mapname.altsideshelper.meta.yaml" as a AltSidesHelperMeta
 				AltSidesHelperMeta meta;
-				if(Everest.Content.TryGet("Maps/" + map.Mode[0].Path + ".dsideshelper.meta", out ModAsset metadata) && metadata.TryDeserialize(out meta)) {
-					foreach(var mode in meta.Sides)
+				if(Everest.Content.TryGet("Maps/" + map.Mode[0].Path + ".altsideshelper.meta", out ModAsset metadata) && metadata.TryDeserialize(out meta)) {
+					foreach(var mode in meta.Sides) {
 						mode.ApplyPreset();
+						heartTextures.Add(mode.ChapterPanelHeartIcon);
+					}
 					// Attach the meta to the AreaData w/ DynData
 					DynData<AreaData> areaDynData = new DynData<AreaData>(map);
-					areaDynData["DSidesHelperMeta"] = meta;
+					areaDynData["AltSidesHelperMeta"] = meta;
 					if(meta.AltSideData.IsAltSide) {
 						var aside = AreaData.Get(meta.AltSideData.For);
 						if(meta.AltSideData.CopyEndScreenData)
@@ -295,6 +373,60 @@ namespace AltSidesHelper {
 					}
 				}
 			}
+
+			SpriteBank crystalHeartSwaps = new SpriteBank(GFX.Gui, "Graphics/AltSidesHelper/Empty.xml");
+
+			// make a fake XML doc to store our texture
+			// TODO: allow using real ones too
+			XmlDocument assetXml = new XmlDocument();
+			var spritesRoot = assetXml.CreateChild("Sprites");
+			
+			foreach(var heart in heartTextures) {
+				// we're going to assume the following XML:
+				/*
+				   <heartgem1 path="collectables/heartgem/1/" start="idle">
+					<Center />
+					<Loop id="idle" path="spin" frames="0" />
+					<Loop id="spin" path="spin" frames="0*10,1-10" delay="0.08"/>
+					<Loop id="fastspin" path="spin" frames="1-10" delay="0.08"/>
+				  </heartgem1>
+				*/
+				// our sprite ID will be "<heart sprite path keyified>"
+				var sprite = spritesRoot.CreateChild(heart.DialogKeyify());
+				// we're talking along the lines of "collectables/heartgem/0/spin"
+				// use the last part of the name as the loop paths, and the rest as element path
+
+				var parts = heart.Split('/');
+				var loopPath = parts[parts.Length - 1];
+				string elemPath = heart.Substring(0, heart.Length - loopPath.Length);
+
+				sprite.SetAttribute("path", elemPath);
+				sprite.SetAttribute("start", "idle");
+				var idle = sprite.CreateChild("Loop");
+				idle.SetAttribute("id", "idle");
+				idle.SetAttribute("path", loopPath);
+				idle.SetAttribute("frames", "0");
+				var spin = sprite.CreateChild("Loop");
+				spin.SetAttribute("id", "spin");
+				spin.SetAttribute("path", loopPath);
+				spin.SetAttribute("frames", "0*10,1-10");
+				spin.SetAttribute("delay", "0.08");
+				var fastspin = sprite.CreateChild("Loop");
+				fastspin.SetAttribute("id", "fastspin");
+				fastspin.SetAttribute("path", loopPath);
+				fastspin.SetAttribute("frames", "1-10");
+				fastspin.SetAttribute("delay", "0.08");
+			}
+			SpriteBank newSpriteBank = new SpriteBank(GFX.Gui, assetXml);
+
+			int hearts = 0;
+			foreach(var kvp in newSpriteBank.SpriteData) {
+				hearts++;
+				crystalHeartSwaps.SpriteData[kvp.Key] = kvp.Value;
+			}
+
+			HeartSpriteBank = crystalHeartSwaps;
+			Logger.Log("AltSidesHelper", $"Loaded {hearts} crystal heart UI textures.");
 		}
 
 		private void OnChapterSelectAdded(On.Celeste.OuiChapterSelect.orig_Added orig, OuiChapterSelect self, Scene scene) {
@@ -310,7 +442,9 @@ namespace AltSidesHelper {
 		}
 
 		public static AltSidesHelperMeta GetMetaForAreaData(AreaData data){
-			return new DynData<AreaData>(data).Get<AltSidesHelperMeta>("DSidesHelperMeta");
+			if(data == null)
+				return null;
+			return new DynData<AreaData>(data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
 		}
 	}
 
@@ -392,6 +526,12 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
+		// Hex colour code
+		public string PoemDisplayColor {
+			get;
+			set;
+		} = "";
+
 		// For overriding vanilla side data
 		public bool OverrideVanillaSideData {
 			get;
@@ -410,6 +550,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/0/spin";
 				InWorldHeartIcon = "collectables/heartGem/0";
 				JournalHeartIcon = "heartgem0";
+				PoemDisplayColor = "8cc7fa";
 			} else if(Preset.Equals("b-side")) {
 				Label = "OVERWORLD_REMIX";
 				Icon = "menu/remix";
@@ -417,6 +558,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/1/spin";
 				InWorldHeartIcon = "collectables/heartGem/1";
 				JournalHeartIcon = "heartgem1";
+				PoemDisplayColor = "ff668a";
 			} else if(Preset.Equals("c-side")) {
 				Label = "OVERWORLD_REMIX2";
 				Icon = "menu/rmx2";
@@ -424,14 +566,16 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/2/spin";
 				InWorldHeartIcon = "collectables/heartGem/2";
 				JournalHeartIcon = "heartgem2";
+				PoemDisplayColor = "fffc24";
 			} else if(Preset.Equals("d-side")) {
 				// TODO: Missing icons
-				Label = "leppa_DSidesHelper_overworld_remix3";
-				Icon = "menu/leppa/DSidesHelper/rmx3";
+				Label = "leppa_AltSidesHelper_overworld_remix3";
+				Icon = "menu/leppa/AltSidesHelper/rmx3";
 				DeathsIcon = "collectables/skullBlue";
-				ChapterPanelHeartIcon = "collectables/leppa/DSidesHelper/heartgem/dside";
+				ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside";
 				InWorldHeartIcon = "collectables/heartGem/3";
 				JournalHeartIcon = "heartgem0";
+				PoemDisplayColor = "ffffff";
 			}
 		}
 	}
