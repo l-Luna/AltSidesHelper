@@ -48,6 +48,7 @@ namespace AltSidesHelper {
 			On.Celeste.OuiChapterSelect.Added += OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart += OnChapterSelectIsStart;
 			On.Celeste.Poem.ctor += OnPoemConstruct;
+			On.Celeste.DeathsCounter.SetMode += OnDeathsCounterSetMode;
 
 			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
 
@@ -78,12 +79,22 @@ namespace AltSidesHelper {
 			On.Celeste.OuiChapterSelect.Added -= OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart -= OnChapterSelectIsStart;
 			On.Celeste.Poem.ctor -= OnPoemConstruct;
+			On.Celeste.DeathsCounter.SetMode -= OnDeathsCounterSetMode;
 
 			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
 
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
+		}
+
+		private void OnDeathsCounterSetMode(On.Celeste.DeathsCounter.orig_SetMode orig, DeathsCounter self, AreaMode mode) {
+			orig(self, mode);
+			if(self.Entity is OuiChapterPanel panel) {
+				var meta = GetModeMetaForAltSide(panel.Data);
+				if(meta != null)
+					new DynData<DeathsCounter>(self).Set("icon", GFX.Gui[meta.DeathsIcon]);
+			}
 		}
 
 		private void OnChapterPanelReset(On.Celeste.OuiChapterPanel.orig_Reset orig, OuiChapterPanel self) {
@@ -446,6 +457,17 @@ namespace AltSidesHelper {
 				return null;
 			return new DynData<AreaData>(data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
 		}
+
+		public static AltSidesHelperMode GetModeMetaForAltSide(AreaData data) {
+			if(data == null)
+				return null;
+			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(data.SID))?.AltSideData?.For));
+			if(parentHelperMeta != null)
+				foreach(var mode in parentHelperMeta.Sides)
+					if(mode.Map.Equals(data.SID))
+						return mode;
+			return null;
+		}
 	}
 
 	public class AltSidesHelperMeta {
@@ -571,7 +593,7 @@ namespace AltSidesHelper {
 				// TODO: Missing icons
 				Label = "leppa_AltSidesHelper_overworld_remix3";
 				Icon = "menu/leppa/AltSidesHelper/rmx3";
-				DeathsIcon = "collectables/skullBlue";
+				DeathsIcon = "collectables/skullGold";
 				ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside";
 				InWorldHeartIcon = "collectables/heartGem/3";
 				JournalHeartIcon = "heartgem0";
