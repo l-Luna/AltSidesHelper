@@ -12,18 +12,23 @@ namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
 
 		public static AltSidesHelperModule Instance;
+
+		// hooks
 		private static IDetour hook_OuiChapterPanel_set_option;
 		private static IDetour hook_OuiChapterPanel_get_option;
 		private static IDetour hook_OuiChapterSelect_get_area;
 
+		// variables used for returning from alt-sides to the chapter panel
 		private int returningAltSide = -1;
+		private bool shouldResetStats = true;
 
+		// types and fields invoked via reflection
 		private static readonly Type t_OuiChapterPanelOption = typeof(OuiChapterPanel)
 			.GetNestedType("Option", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 		private static FieldInfo modesField = typeof(OuiChapterPanel)
 			.GetField("modes", BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.Instance);
-		private static MethodInfo updateStatsMethod = typeof(OuiChapterPanel)
-			.GetMethod("UpdateStats", BindingFlags.NonPublic | BindingFlags.InvokeMethod | BindingFlags.Instance);
+		private static MethodInfo resetMethod = typeof(OuiChapterPanel)
+			.GetMethod("Reset", BindingFlags.NonPublic | BindingFlags.InvokeMethod | BindingFlags.Instance);
 
 		public AltSidesHelperModule() {
 			Instance = this;
@@ -32,6 +37,8 @@ namespace AltSidesHelper {
 		public override void Load() {
 			On.Celeste.OuiChapterPanel.Reset += OnChapterPanelReset;
 			On.Celeste.OuiChapterPanel.IsStart += OnChapterPanelIsStart;
+			On.Celeste.OuiChapterPanel.UpdateStats += OnChapterPanelUpdateStats;
+			On.Celeste.OuiChapterPanel.SetStatsPosition += OnChapterPanelSetStatsPosition;
 			On.Celeste.AreaData.Load += OnAreaDataLoad;
 			On.Celeste.OuiChapterSelect.Added += OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart += OnChapterSelectIsStart;
@@ -59,6 +66,8 @@ namespace AltSidesHelper {
 		public override void Unload() {
 			On.Celeste.OuiChapterPanel.Reset -= OnChapterPanelReset;
 			On.Celeste.OuiChapterPanel.IsStart -= OnChapterPanelIsStart;
+			On.Celeste.OuiChapterPanel.UpdateStats -= OnChapterPanelUpdateStats;
+			On.Celeste.OuiChapterPanel.SetStatsPosition -= OnChapterPanelSetStatsPosition;
 			On.Celeste.AreaData.Load -= OnAreaDataLoad;
 			On.Celeste.OuiChapterSelect.Added -= OnChapterSelectAdded;
 			On.Celeste.OuiChapterSelect.IsStart -= OnChapterSelectIsStart;
@@ -71,17 +80,87 @@ namespace AltSidesHelper {
 		}
 
 		private void OnChapterPanelReset(On.Celeste.OuiChapterPanel.orig_Reset orig, OuiChapterPanel self) {
+			var oldRealStats = self.RealStats;
+			var oldDisplayedStats = self.DisplayedStats;
+			
 			orig(self);
+			AddExtraModes(self);
 
 			// check if we're returning from an alt-side
 			var selfdata = new DynData<OuiChapterPanel>(self);
-			if(returningAltSide == -1) {
+			if(returningAltSide < 0) {
 				selfdata.Data.Remove("TrueMode");
 			} else {
 				selfdata["TrueMode"] = returningAltSide;
-				returningAltSide = -1;
+				//Logger.Log("AltSidesHelper", $"returningAltSide = {returningAltSide}, mode count = {((IList)modesField.GetValue(self)).Count}.");
+				// only run this when called in the correct
+				if(!shouldResetStats)
+					UpdateDataForTrueMode(self, returningAltSide);
 			}
 
+			if(!shouldResetStats) {
+				self.RealStats = oldRealStats;
+				self.DisplayedStats = oldDisplayedStats;
+			}
+		}
+
+		private bool OnChapterPanelIsStart(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
+			AreaData newArea = null;
+			if(start == Overworld.StartMode.AreaComplete || start == Overworld.StartMode.AreaQuit) {
+				AreaData area = AreaData.Get(SaveData.Instance.LastArea.ID);
+				var old = area;
+				var meta = GetMetaForAreaData(area);
+				if(meta?.AltSideData.IsAltSide ?? false) {
+					area = AreaData.Get(meta.AltSideData.For) ?? area;
+					if(area != null) {
+						newArea = area;
+						SaveData.Instance.LastArea.ID = area.ID;
+						int returningSide = 0; //last unlocked mode
+						if(!area.Interlude_Safe && area.HasMode(AreaMode.BSide) && (SaveData.Instance.Areas_Safe[area.ID].Cassette || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode))
+							returningSide++;
+						if(!area.Interlude_Safe && area.HasMode(AreaMode.CSide) && SaveData.Instance.UnlockedModes >= 3)
+							returningSide++;
+
+						var asideAltSideMeta = GetMetaForAreaData(area);
+						foreach(var mode in asideAltSideMeta.Sides)
+							if(!mode.OverrideVanillaSideData) {
+								returningSide++;
+								if(mode.Map.Equals(area.GetSID()))
+									break;
+							}
+
+						returningAltSide = returningSide;
+						SaveData.Instance.LastArea_Safe.ID = old.ID;
+					}
+				}
+			}
+			var ret = orig(self, overworld, start);
+			if(newArea != null) {
+				//self.Data = newArea;
+				SaveData.Instance.LastArea_Safe.ID = newArea.ID;
+				shouldResetStats = false;
+				resetMethod.Invoke(self, new object[] { });
+				shouldResetStats = true;
+				overworld.Mountain.SnapState(self.Data.MountainState);
+				overworld.Mountain.SnapCamera(self.Area.ID, self.Data.MountainZoom);
+				overworld.Mountain.EaseCamera(self.Area.ID, self.Data.MountainSelect, 1f, true);
+			}
+			returningAltSide = -1;
+
+			return ret;
+		}
+
+		private void OnChapterPanelUpdateStats(On.Celeste.OuiChapterPanel.orig_UpdateStats orig, OuiChapterPanel self, bool wiggle, bool? overrideStrawberryWiggle, bool? overrideDeathWiggle, bool? overrideHeartWiggle) {
+			if(shouldResetStats)
+				orig(self, wiggle, overrideStrawberryWiggle, overrideDeathWiggle, overrideHeartWiggle);
+		}
+
+		private void OnChapterPanelSetStatsPosition(On.Celeste.OuiChapterPanel.orig_SetStatsPosition orig, OuiChapterPanel self, bool approach) {
+			if(shouldResetStats)
+				orig(self, approach);
+		}
+
+		private static void AddExtraModes(OuiChapterPanel self) {
 			// check map meta for extra sides or side overrides
 			AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("DSidesHelperMeta");
 			if(meta?.Sides != null) {
@@ -109,12 +188,12 @@ namespace AltSidesHelper {
 					if(!mode.OverrideVanillaSideData) {
 						object newOptn;
 						((IList)modesField.GetValue(self)).Add(
-							newOptn = (DynamicData.New(t_OuiChapterPanelOption)(new {
+							newOptn = DynamicData.New(t_OuiChapterPanelOption)(new {
 								Label = Dialog.Clean(mode.Label),
 								Icon = GFX.Gui[mode.Icon],
 								ID = "DSidesHelperMode_" + i.ToString(),
 								Siblings = siblings > 5 ? siblings : 0
-							}))
+							})
 						);
 						DynamicData data = new DynamicData(newOptn);
 						AreaData map = null;
@@ -126,50 +205,18 @@ namespace AltSidesHelper {
 						// find the vanilla mode and modify it
 						// IsAltSide is handled elsewhere
 						foreach(var vmode in (IList)modesField.GetValue(self)) {
-							DynData<object> data = new DynData<object>(vmode);
+							DynamicData data = new DynamicData(vmode);
 							// ...
 						}
 					}
 				}
 			}
 
-			// ensure that, when returning from an alt-side, stats are displayed properly
-			try {
-				self.Area = new DynamicData(((IList)modesField.GetValue(self))[(int)selfdata["TrueMode"]]).Get<AreaKey>("AreaKey");
-				self.RealStats = SaveData.Instance.Areas_Safe[self.Area.ID];
-				self.DisplayedStats = self.RealStats;
-				// self.Data = AreaData.Areas[self.Area.ID]; // don't set this, or the mountain position of the alt-side is used
-			} catch(NullReferenceException) { }
-			updateStatsMethod.Invoke(self, new object[] { false, null, null, null });
-		}
-
-		private bool OnChapterPanelIsStart(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
-			if(start == Overworld.StartMode.AreaComplete || start == Overworld.StartMode.AreaQuit) {
-				AreaData area = AreaData.Get(SaveData.Instance.LastArea.ID);
-				var meta = GetMetaForAreaData(area);
-				if(meta?.AltSideData.IsAltSide ?? false) {
-					area = AreaData.Get(meta.AltSideData.For) ?? area;
-					if(area != null) {
-						SaveData.Instance.LastArea.ID = area.ID;
-						int returningSide = 0; //last unlocked mode
-						if(!area.Interlude_Safe && area.HasMode(AreaMode.BSide) && (SaveData.Instance.Areas_Safe[area.ID].Cassette || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode))
-							returningSide++;
-						if(!area.Interlude_Safe && area.HasMode(AreaMode.CSide) && SaveData.Instance.UnlockedModes >= 3)
-							returningSide++;
-
-						var asideAltSideMeta = GetMetaForAreaData(area);
-						foreach(var mode in asideAltSideMeta.Sides)
-							if(!mode.OverrideVanillaSideData) {
-								returningSide++;
-								if(mode.Map.Equals(area.GetSID()))
-									break;
-							}
-
-						returningAltSide = returningSide;
-					}
-				}
+			int count = ((IList)modesField.GetValue(self)).Count;
+			for(int i = 0; i < count; i++) {
+				//DynamicData data = new DynamicData(((IList)modesField.GetValue(self))[i]);
+				//data.Invoke("SlideTowards", count, i);
 			}
-			return orig(self, overworld, start);
 		}
 
 		private bool OnChapterSelectIsStart(On.Celeste.OuiChapterSelect.orig_IsStart orig, OuiChapterSelect self, Overworld overworld, Overworld.StartMode start) {
@@ -193,13 +240,17 @@ namespace AltSidesHelper {
 			if(data.Get<bool>("selectingMode")) {
 				data["TrueMode"] = option;
 
-				try {
-					self.Area = new DynamicData(((IList)modesField.GetValue(self))[option]).Get<AreaKey>("AreaKey");
-					self.RealStats = SaveData.Instance.Areas_Safe[self.Area.ID];
-					self.DisplayedStats = self.RealStats;
-					self.Data = AreaData.Areas[self.Area.ID];
-				} catch(NullReferenceException) { }
+				UpdateDataForTrueMode(self, option);
 			}
+		}
+
+		private static void UpdateDataForTrueMode(OuiChapterPanel self, int option) {
+			try {
+				self.Area = new DynamicData(((IList)modesField.GetValue(self))[option]).Get<AreaKey>("AreaKey");
+				self.RealStats = SaveData.Instance.Areas_Safe[self.Area.ID];
+				self.DisplayedStats = self.RealStats;
+				self.Data = AreaData.Areas[self.Area.ID];
+			} catch(NullReferenceException) { }
 		}
 
 		private delegate int orig_OuiChapterPanel_get_option(OuiChapterPanel self);
