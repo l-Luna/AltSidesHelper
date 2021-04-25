@@ -34,7 +34,6 @@ namespace AltSidesHelper {
 
 		// heart display in chapter panel
 		public static SpriteBank HeartSpriteBank;
-		public static SpriteBank WorldHeartSpriteBank;
 
 		public AltSidesHelperModule() {
 			Instance = this;
@@ -440,23 +439,11 @@ namespace AltSidesHelper {
 
 			SpriteBank crystalHeartSwaps = new SpriteBank(GFX.Gui, "Graphics/AltSidesHelper/Empty.xml");
 
-			// make a fake XML doc to store our textures
-			// TODO: allow using real XMLs too - load them and copy them in
-			XmlDocument assetXml = new XmlDocument();
-			var spritesRoot = assetXml.CreateChild("Sprites");
-			
+			// TODO: allow using XMLs too - load them and copy them in
+			Dictionary<string, Sprite> sprites = new Dictionary<string, Sprite>();
+
 			foreach(var heart in heartTextures) {
-				// we're going to assume the following XML:
-				/*
-				   <heartgem1 path="collectables/heartgem/1/" start="idle">
-					<Center />
-					<Loop id="idle" path="spin" frames="0" />
-					<Loop id="spin" path="spin" frames="0*10,1-10" delay="0.08"/>
-					<Loop id="fastspin" path="spin" frames="1-10" delay="0.08"/>
-				  </heartgem1>
-				*/
 				// our sprite ID will be "<heart sprite path keyified>"
-				var sprite = spritesRoot.CreateChild(heart.DialogKeyify());
 				// we're talking along the lines of "collectables/heartgem/0/spin"
 				// use the last part of the name as the loop paths, and the rest as element path
 
@@ -464,30 +451,21 @@ namespace AltSidesHelper {
 				var loopPath = parts[parts.Length - 1];
 				string elemPath = heart.Substring(0, heart.Length - loopPath.Length);
 
-				// TODO: replace with what we do for in-world hearts
-				sprite.SetAttribute("path", elemPath);
-				sprite.SetAttribute("start", "idle");
-				var idle = sprite.CreateChild("Loop");
-				idle.SetAttribute("id", "idle");
-				idle.SetAttribute("path", loopPath);
-				idle.SetAttribute("frames", "0");
-				var spin = sprite.CreateChild("Loop");
-				spin.SetAttribute("id", "spin");
-				spin.SetAttribute("path", loopPath);
-				spin.SetAttribute("frames", "0*10,1-10");
-				spin.SetAttribute("delay", "0.08");
-				var fastspin = sprite.CreateChild("Loop");
-				fastspin.SetAttribute("id", "fastspin");
-				fastspin.SetAttribute("path", loopPath);
-				fastspin.SetAttribute("frames", "1-10");
-				fastspin.SetAttribute("delay", "0.08");
+				var sprite = new Sprite(GFX.Gui, elemPath);
+				sprite.AddLoop("idle", loopPath, 0, new int[] { 0 });
+				sprite.AddLoop("spin", loopPath, 0.08f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });
+				sprite.AddLoop("fastspin", loopPath, 0.08f, new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });
+				sprite.Play("idle");
+				sprite.CenterOrigin();
+				sprites.Add(heart.DialogKeyify(), sprite);
 			}
-			SpriteBank newSpriteBank = new SpriteBank(GFX.Gui, assetXml);
 
 			int hearts = 0;
-			foreach(var kvp in newSpriteBank.SpriteData) {
+			foreach(var kvp in sprites) {
 				hearts++;
-				crystalHeartSwaps.SpriteData[kvp.Key] = kvp.Value;
+				crystalHeartSwaps.SpriteData[kvp.Key] = new SpriteData(GFX.Gui) {
+					Sprite = kvp.Value
+				};
 			}
 
 			HeartSpriteBank = crystalHeartSwaps;
