@@ -34,21 +34,23 @@ namespace AltSidesHelper {
 
 		// heart display in chapter panel
 		public static SpriteBank HeartSpriteBank;
+		public static SpriteBank WorldHeartSpriteBank;
 
 		public AltSidesHelperModule() {
 			Instance = this;
 		}
 
 		public override void Load() {
-			On.Celeste.OuiChapterPanel.Reset += OnChapterPanelReset;
-			On.Celeste.OuiChapterPanel.IsStart += OnChapterPanelIsStart;
-			On.Celeste.OuiChapterPanel.UpdateStats += OnChapterPanelUpdateStats;
-			On.Celeste.OuiChapterPanel.SetStatsPosition += OnChapterPanelSetStatsPosition;
-			On.Celeste.AreaData.Load += OnAreaDataLoad;
-			On.Celeste.OuiChapterSelect.Added += OnChapterSelectAdded;
-			On.Celeste.OuiChapterSelect.IsStart += OnChapterSelectIsStart;
-			On.Celeste.Poem.ctor += OnPoemConstruct;
-			On.Celeste.DeathsCounter.SetMode += OnDeathsCounterSetMode;
+			On.Celeste.OuiChapterPanel.Reset += CustomiseChapterPanel;
+			On.Celeste.OuiChapterPanel.IsStart += FixReturnFromAltSide;
+			On.Celeste.OuiChapterPanel.UpdateStats += FixSettingAltSideStats;
+			On.Celeste.OuiChapterPanel.SetStatsPosition += FixSettingAltSideStatPositions;
+			On.Celeste.AreaData.Load += PostAreaLoad;
+			On.Celeste.OuiChapterSelect.Added += HideAltSides;
+			On.Celeste.OuiChapterSelect.IsStart += ReturnToAltSide;
+			On.Celeste.Poem.ctor += SetPoemColour;
+			On.Celeste.DeathsCounter.SetMode += SetDeathsCounterIcon;
+			On.Celeste.HeartGem.Awake += SetCrystalHeartSprite;
 
 			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
 
@@ -71,15 +73,16 @@ namespace AltSidesHelper {
 		}
 
 		public override void Unload() {
-			On.Celeste.OuiChapterPanel.Reset -= OnChapterPanelReset;
-			On.Celeste.OuiChapterPanel.IsStart -= OnChapterPanelIsStart;
-			On.Celeste.OuiChapterPanel.UpdateStats -= OnChapterPanelUpdateStats;
-			On.Celeste.OuiChapterPanel.SetStatsPosition -= OnChapterPanelSetStatsPosition;
-			On.Celeste.AreaData.Load -= OnAreaDataLoad;
-			On.Celeste.OuiChapterSelect.Added -= OnChapterSelectAdded;
-			On.Celeste.OuiChapterSelect.IsStart -= OnChapterSelectIsStart;
-			On.Celeste.Poem.ctor -= OnPoemConstruct;
-			On.Celeste.DeathsCounter.SetMode -= OnDeathsCounterSetMode;
+			On.Celeste.OuiChapterPanel.Reset -= CustomiseChapterPanel;
+			On.Celeste.OuiChapterPanel.IsStart -= FixReturnFromAltSide;
+			On.Celeste.OuiChapterPanel.UpdateStats -= FixSettingAltSideStats;
+			On.Celeste.OuiChapterPanel.SetStatsPosition -= FixSettingAltSideStatPositions;
+			On.Celeste.AreaData.Load -= PostAreaLoad;
+			On.Celeste.OuiChapterSelect.Added -= HideAltSides;
+			On.Celeste.OuiChapterSelect.IsStart -= ReturnToAltSide;
+			On.Celeste.Poem.ctor -= SetPoemColour;
+			On.Celeste.DeathsCounter.SetMode -= SetDeathsCounterIcon;
+			On.Celeste.HeartGem.Awake -= SetCrystalHeartSprite;
 
 			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
 
@@ -88,7 +91,39 @@ namespace AltSidesHelper {
 			hook_OuiChapterSelect_get_area.Dispose();
 		}
 
-		private void OnDeathsCounterSetMode(On.Celeste.DeathsCounter.orig_SetMode orig, DeathsCounter self, AreaMode mode) {
+		private void SetCrystalHeartSprite(On.Celeste.HeartGem.orig_Awake orig, HeartGem self, Scene scene) {
+			orig(self, scene);
+			if(!self.IsGhost && !self.IsFake) {
+				var meta = GetModeMetaForAltSide(AreaData.Get((scene as Level).Session.Area));
+				if(meta != null) {
+					var selfdata = new DynData<HeartGem>(self);
+					var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
+					sprite.CenterOrigin();
+					sprite.AddLoop("idle", "", 0, new int[] { 0 });
+					sprite.AddLoop("spin", "", 0.1f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
+					sprite.AddLoop("fastspin", "", 0.1f);
+					sprite.CenterOrigin();
+					sprite.OnLoop = delegate (string anim) {
+						if(self.Visible && anim == "spin" && (bool)selfdata["autoPulse"]) {
+							Audio.Play("event:/game/general/crystalheart_pulse", self.Position);
+							self.ScaleWiggler.Start();
+							(scene as Level).Displacement.AddBurst(self.Position, 0.35f, 8f, 48f, 0.25f);
+						}
+					};
+					sprite.Play("spin");
+					self.ScaleWiggler.RemoveSelf();
+					self.ScaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f) {
+						sprite.Scale = Vector2.One * (1f + f * 0.25f);
+					});
+					self.Add(self.ScaleWiggler);
+					((Component)selfdata["sprite"]).RemoveSelf();
+					selfdata["sprite"] = sprite;
+					self.Add(sprite);
+				}
+			}
+		}
+
+		private void SetDeathsCounterIcon(On.Celeste.DeathsCounter.orig_SetMode orig, DeathsCounter self, AreaMode mode) {
 			orig(self, mode);
 			if(self.Entity is OuiChapterPanel panel) {
 				var meta = GetModeMetaForAltSide(panel.Data);
@@ -97,7 +132,7 @@ namespace AltSidesHelper {
 			}
 		}
 
-		private void OnChapterPanelReset(On.Celeste.OuiChapterPanel.orig_Reset orig, OuiChapterPanel self) {
+		private void CustomiseChapterPanel(On.Celeste.OuiChapterPanel.orig_Reset orig, OuiChapterPanel self) {
 			ResetCrystalHeart(self);
 			
 			var oldRealStats = self.RealStats;
@@ -152,15 +187,18 @@ namespace AltSidesHelper {
 			if(animId != null) {
 				if(HeartSpriteBank.Has(animId)) {
 					Sprite heartSprite = HeartSpriteBank.Create(animId);
-					new DynData<OuiChapterPanel>(panel).Get<HeartGemDisplay>("heart").Sprites[0] = heartSprite;
+					var selfdata = new DynData<OuiChapterPanel>(panel);
+					var oldheart = selfdata.Get<HeartGemDisplay>("heart");
+					oldheart.Sprites[0] = heartSprite;
 					heartSprite.CenterOrigin();
 					heartSprite.Play("spin");
-					new DynData<OuiChapterPanel>(panel)["AsHeartDirty"] = true;
+					heartSprite.Visible = false;
+					selfdata["AsHeartDirty"] = true;
 				}
 			}
 		}
 
-		private void OnPoemConstruct(On.Celeste.Poem.orig_ctor orig, Poem self, string text, int heartIndex, float heartAlpha) {
+		private void SetPoemColour(On.Celeste.Poem.orig_ctor orig, Poem self, string text, int heartIndex, float heartAlpha) {
 			orig(self, text, heartIndex, heartAlpha);
 			// customize heart gem icon
 			string animId = null;
@@ -188,7 +226,7 @@ namespace AltSidesHelper {
 				new DynData<Poem>(self)["Color"] = color;
 		}
 
-		private bool OnChapterPanelIsStart(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
+		private bool FixReturnFromAltSide(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
 			AreaData newArea = null;
 			if(start == Overworld.StartMode.AreaComplete || start == Overworld.StartMode.AreaQuit) {
 				AreaData area = AreaData.Get(SaveData.Instance.LastArea.ID);
@@ -234,12 +272,12 @@ namespace AltSidesHelper {
 			return ret;
 		}
 
-		private void OnChapterPanelUpdateStats(On.Celeste.OuiChapterPanel.orig_UpdateStats orig, OuiChapterPanel self, bool wiggle, bool? overrideStrawberryWiggle, bool? overrideDeathWiggle, bool? overrideHeartWiggle) {
+		private void FixSettingAltSideStats(On.Celeste.OuiChapterPanel.orig_UpdateStats orig, OuiChapterPanel self, bool wiggle, bool? overrideStrawberryWiggle, bool? overrideDeathWiggle, bool? overrideHeartWiggle) {
 			if(shouldResetStats)
 				orig(self, wiggle, overrideStrawberryWiggle, overrideDeathWiggle, overrideHeartWiggle);
 		}
 
-		private void OnChapterPanelSetStatsPosition(On.Celeste.OuiChapterPanel.orig_SetStatsPosition orig, OuiChapterPanel self, bool approach) {
+		private void FixSettingAltSideStatPositions(On.Celeste.OuiChapterPanel.orig_SetStatsPosition orig, OuiChapterPanel self, bool approach) {
 			if(shouldResetStats)
 				orig(self, approach);
 		}
@@ -303,7 +341,7 @@ namespace AltSidesHelper {
 			}
 		}
 
-		private bool OnChapterSelectIsStart(On.Celeste.OuiChapterSelect.orig_IsStart orig, OuiChapterSelect self, Overworld overworld, Overworld.StartMode start) {
+		private bool ReturnToAltSide(On.Celeste.OuiChapterSelect.orig_IsStart orig, OuiChapterSelect self, Overworld overworld, Overworld.StartMode start) {
 			if(start == Overworld.StartMode.AreaComplete || start == Overworld.StartMode.AreaQuit) {
 				AreaData area = AreaData.Get(SaveData.Instance.LastArea.ID);
 				var meta = GetMetaForAreaData(area);
@@ -361,7 +399,7 @@ namespace AltSidesHelper {
 			return prevArea;
 		}
 
-		private void OnAreaDataLoad(On.Celeste.AreaData.orig_Load orig) {
+		private void PostAreaLoad(On.Celeste.AreaData.orig_Load orig) {
 			orig();
 			var heartTextures = new HashSet<string>();
 			foreach(var map in AreaData.Areas) {
@@ -387,8 +425,8 @@ namespace AltSidesHelper {
 
 			SpriteBank crystalHeartSwaps = new SpriteBank(GFX.Gui, "Graphics/AltSidesHelper/Empty.xml");
 
-			// make a fake XML doc to store our texture
-			// TODO: allow using real ones too
+			// make a fake XML doc to store our textures
+			// TODO: allow using real XMLs too - load them and copy them in
 			XmlDocument assetXml = new XmlDocument();
 			var spritesRoot = assetXml.CreateChild("Sprites");
 			
@@ -411,6 +449,7 @@ namespace AltSidesHelper {
 				var loopPath = parts[parts.Length - 1];
 				string elemPath = heart.Substring(0, heart.Length - loopPath.Length);
 
+				// TODO: replace with what we do for in-world hearts
 				sprite.SetAttribute("path", elemPath);
 				sprite.SetAttribute("start", "idle");
 				var idle = sprite.CreateChild("Loop");
@@ -440,7 +479,7 @@ namespace AltSidesHelper {
 			Logger.Log("AltSidesHelper", $"Loaded {hearts} crystal heart UI textures.");
 		}
 
-		private void OnChapterSelectAdded(On.Celeste.OuiChapterSelect.orig_Added orig, OuiChapterSelect self, Scene scene) {
+		private void HideAltSides(On.Celeste.OuiChapterSelect.orig_Added orig, OuiChapterSelect self, Scene scene) {
 			orig(self, scene);
 			var icons = new DynData<OuiChapterSelect>(self).Get<List<OuiChapterSelectIcon>>("icons");
 			for(int i = icons.Count - 1; i >= 0; i--) {
@@ -570,7 +609,7 @@ namespace AltSidesHelper {
 				Icon = "menu/play";
 				DeathsIcon = "collectables/skullBlue";
 				ChapterPanelHeartIcon = "collectables/heartgem/0/spin";
-				InWorldHeartIcon = "collectables/heartGem/0";
+				InWorldHeartIcon = "collectables/heartGem/0/";
 				JournalHeartIcon = "heartgem0";
 				PoemDisplayColor = "8cc7fa";
 			} else if(Preset.Equals("b-side")) {
@@ -578,7 +617,7 @@ namespace AltSidesHelper {
 				Icon = "menu/remix";
 				DeathsIcon = "collectables/skullRed";
 				ChapterPanelHeartIcon = "collectables/heartgem/1/spin";
-				InWorldHeartIcon = "collectables/heartGem/1";
+				InWorldHeartIcon = "collectables/heartGem/1/";
 				JournalHeartIcon = "heartgem1";
 				PoemDisplayColor = "ff668a";
 			} else if(Preset.Equals("c-side")) {
@@ -586,7 +625,7 @@ namespace AltSidesHelper {
 				Icon = "menu/rmx2";
 				DeathsIcon = "collectables/skullGold";
 				ChapterPanelHeartIcon = "collectables/heartgem/2/spin";
-				InWorldHeartIcon = "collectables/heartGem/2";
+				InWorldHeartIcon = "collectables/heartGem/2/";
 				JournalHeartIcon = "heartgem2";
 				PoemDisplayColor = "fffc24";
 			} else if(Preset.Equals("d-side")) {
@@ -595,8 +634,8 @@ namespace AltSidesHelper {
 				Icon = "menu/leppa/AltSidesHelper/rmx3";
 				DeathsIcon = "collectables/skullGold";
 				ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside";
-				InWorldHeartIcon = "collectables/heartGem/3";
-				JournalHeartIcon = "heartgem0";
+				InWorldHeartIcon = "collectables/heartGem/3/";
+				JournalHeartIcon = "heartgem2";
 				PoemDisplayColor = "ffffff";
 			}
 		}
