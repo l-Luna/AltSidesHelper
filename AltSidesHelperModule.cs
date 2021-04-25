@@ -203,10 +203,11 @@ namespace AltSidesHelper {
 					Sprite heartSprite = HeartSpriteBank.Create(animId);
 					var selfdata = new DynData<OuiChapterPanel>(panel);
 					var oldheart = selfdata.Get<HeartGemDisplay>("heart");
+					bool prevVisible = oldheart.Sprites[0].Visible;
 					oldheart.Sprites[0] = heartSprite;
 					heartSprite.CenterOrigin();
 					heartSprite.Play("spin");
-					heartSprite.Visible = false;
+					heartSprite.Visible = prevVisible;
 					selfdata["AsHeartDirty"] = true;
 				}
 			}
