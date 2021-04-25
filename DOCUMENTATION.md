@@ -2,7 +2,7 @@
 AltSideHelper allows you to add extra 'sides to your map - whether they be D-Sides, Heartsides, CC-Sides, Gyms - and display them in the same way as vanilla's B and C sides. It also provides some assets for D-Sides.
 
 ## Adding alt-sides to your map
-First, create your alt-sides as seperate maps. Feel free to use any naming scheme you like, so long as your don't mark it as a B-Side or C-Side (ending in `-B`, `-C`, `-H`, or `-X` - `-D` is fine).
+First, create your alt-sides as seperate maps. Feel free to use any naming scheme you like, so long as your don't mark it as a B-Side or C-Side (ending in `-B`, `-C`, `-H`, or `-X` is not allowed, but ending in `-D` or anything else is fine).
 
 Then create a `mapname.altsideshelper.meta.yaml` file (analogous to Everest's `mapname.meta.yaml` file) for *both* your A-Side and alt-side. The alt-side does not need a regular `.meta.yaml` file.
 
