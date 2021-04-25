@@ -51,6 +51,7 @@ namespace AltSidesHelper {
 			On.Celeste.Poem.ctor += SetPoemColour;
 			On.Celeste.DeathsCounter.SetMode += SetDeathsCounterIcon;
 			On.Celeste.HeartGem.Awake += SetCrystalHeartSprite;
+			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle += SetAltSideEndScreenTitle;
 
 			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
 
@@ -83,12 +84,25 @@ namespace AltSidesHelper {
 			On.Celeste.Poem.ctor -= SetPoemColour;
 			On.Celeste.DeathsCounter.SetMode -= SetDeathsCounterIcon;
 			On.Celeste.HeartGem.Awake -= SetCrystalHeartSprite;
+			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle -= SetAltSideEndScreenTitle;
 
 			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
 
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
+		}
+
+		private string SetAltSideEndScreenTitle(On.Celeste.AreaComplete.orig_GetCustomCompleteScreenTitle orig, AreaComplete self) {
+			var ret = orig(self);
+			var meta = GetModeMetaForAltSide(AreaData.Get(self.Session.Area));
+			if(meta != null) {
+				if(meta.CanFullClear && self.Session.FullClear && !meta.EndScreenClearTitle.Equals(""))
+					return Dialog.Clean(meta.EndScreenClearTitle);
+				if(!meta.EndScreenTitle.Equals(""))
+					return Dialog.Clean(meta.EndScreenTitle);
+			}
+			return ret;
 		}
 
 		private void SetCrystalHeartSprite(On.Celeste.HeartGem.orig_Awake orig, HeartGem self, Scene scene) {
@@ -561,6 +575,16 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
+		public string EndScreenTitle {
+			get;
+			set;
+		} = "";
+
+		public string EndScreenClearTitle {
+			get;
+			set;
+		} = "";
+
 		// Relative to Atlases/Gui
 		public string Icon {
 			get;
@@ -598,10 +622,17 @@ namespace AltSidesHelper {
 			get;
 			set;
 		} = false;
+
 		public string VanillaSide {
 			get;
 			set;
 		} = "";
+
+		// Whether the alt-side can be full cleared, for the title
+		public bool CanFullClear {
+			get;
+			set;
+		} = false;
 
 		public void ApplyPreset() {
 			if(Preset.Equals("a-side")){
@@ -612,6 +643,8 @@ namespace AltSidesHelper {
 				InWorldHeartIcon = "collectables/heartGem/0/";
 				JournalHeartIcon = "heartgem0";
 				PoemDisplayColor = "8cc7fa";
+				EndScreenTitle = "AREACOMPLETE_NORMAL";
+				EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR";
 			} else if(Preset.Equals("b-side")) {
 				Label = "OVERWORLD_REMIX";
 				Icon = "menu/remix";
@@ -620,6 +653,8 @@ namespace AltSidesHelper {
 				InWorldHeartIcon = "collectables/heartGem/1/";
 				JournalHeartIcon = "heartgem1";
 				PoemDisplayColor = "ff668a";
+				EndScreenTitle = "AREACOMPLETE_BSIDE";
+				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside";
 			} else if(Preset.Equals("c-side")) {
 				Label = "OVERWORLD_REMIX2";
 				Icon = "menu/rmx2";
@@ -628,6 +663,8 @@ namespace AltSidesHelper {
 				InWorldHeartIcon = "collectables/heartGem/2/";
 				JournalHeartIcon = "heartgem2";
 				PoemDisplayColor = "fffc24";
+				EndScreenTitle = "AREACOMPLETE_CSIDE";
+				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside";
 			} else if(Preset.Equals("d-side")) {
 				// TODO: Missing icons
 				Label = "leppa_AltSidesHelper_overworld_remix3";
@@ -637,6 +674,8 @@ namespace AltSidesHelper {
 				InWorldHeartIcon = "collectables/heartGem/3/";
 				JournalHeartIcon = "heartgem2";
 				PoemDisplayColor = "ffffff";
+				EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside";
+				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside";
 			}
 		}
 	}
