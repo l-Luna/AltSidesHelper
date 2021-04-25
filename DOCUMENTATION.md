@@ -25,11 +25,14 @@ Here's the full list of attributes that are already functional that you can set 
  - `DeathsIcon`: The image to be used for the deaths counter. (`collectables/skullBlue`, `collectables/skullRed`, `collectables/skullGold`, `collectables/skullGold`)
  - `ChapterPanelHeartIcon`: The sprite set to be used for the crystal heart on the chapter panel *and* when displaying the heart poem. (`collectables/heartgem/0/spin`, `collectables/heartgem/1/spin`, `collectables/heartgem/2/spin`, `collectables/leppa/AltSidesHelper/heartgem/dside` (a grey heart))
  - `PoemDisplayColor`: The colour of the text and lines in the heart poem. (`8cc7fa`, `ff668a`, `fffc24`, `ffffff`)
+ - `InWorldHeartIcon`: The textures to be used for the crystal heart entity. (`collectables/heartGem/0/`, `collectables/heartGem/1/`, `collectables/heartGem/2/`, `collectables/heartGem/3/`)
+ - `EndScreenTitle`: The dialog key of the text to be displayed on the end screen. If this is unset, or set to nothing, it won't be modified. (`AREACOMPLETE_NORMAL`, `AREACOMPLETE_BSIDE`, `AREACOMPLETE_CSIDE`, `leppa_AltSidesHelper_areacomplete_dside`)
+ - `EndScreenClearTitle`: If `CanFullClear` is set to true, this dialog key will be used for the title on the end screen after a full clear. If this is unset, or set to nothing, it won't be modified. You can use this with the `b-side` or `c-side` presets to create a B/C side that can be full-cleared. (`AREACOMPLETE_NORMAL_FULLCLEAR`, `leppa_AltSidesHelper_areacomplete_fullclear_bside`, `leppa_AltSidesHelper_areacomplete_fullclear_cside`, `leppa_AltSidesHelper_areacomplete_fullclear_dside`)
+ - `CanFullClear`: If set, `EndScreenClearTitle` will be used for the end screen title after a full clear. (`false`)
 
 The following attributes can be set, but are currently unimplemented:
- - `InWorldHeartIcon`: The textures to be used for the crystal heart entity. (`collectables/heartGem/0`, `collectables/heartGem/1`, `collectables/heartGem/2`, `collectables/heartGem/3`)
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
- - `OverrideVanillaSideData`: If true, the vanilla sid chosen by `VanillaSide` will have its data modified, rather than creating a new side. (`false`.)
+ - `OverrideVanillaSideData`: If true, the vanilla sid chosen by `VanillaSide` will have its data modified, rather than creating a new side. (`false`)
  - `VanillaSide`: If `OverrideVanillaSideData` is true, the side chosen by this will have its data overriden. (Empty.)
 
 Attributes for unlocking alt-sides (by cassette or consecutively) and more journal information are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
@@ -49,4 +52,4 @@ Available attributes are:
  - `CopyMountainData`: Whether the alt-side should use the A-Side's mountain location... and is currently broken. (True by default.)
  - `CopyEndScreenData`: Whether the alt-side should use the A-Side's end screen. (True by default.)
 
-If `CopyEndScreenData` or `CopyMountainData` are false, you'll need to use a seperate `mapname.meta.yaml` to set those. Mountain location is currently bugged. An attribute to set the alt-side's end screen title seperately is planned.
+If `CopyEndScreenData` or `CopyMountainData` are false, you'll need to use a seperate `mapname.meta.yaml` to set those. Mountain location is currently bugged.
