@@ -75,9 +75,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AltSidesHelperModule.cs" />
+    <Compile Include="AltSidesHelperSaveData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Triggers\AltSideUnlockTrigger.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Ahorn\triggers\altSideUnlockTrigger.jl" />
     <None Include="everest.yaml" />
     <None Include="packages.config" />
   </ItemGroup>

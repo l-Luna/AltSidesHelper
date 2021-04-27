@@ -14,6 +14,9 @@ namespace AltSidesHelper {
 
 		public static AltSidesHelperModule Instance;
 
+		public override Type SaveDataType => typeof(AltSidesHelperSaveData);
+		public static AltSidesHelperSaveData AltSidesSaveData => (AltSidesHelperSaveData)Instance._SaveData;
+
 		// hooks
 		private static IDetour hook_OuiChapterPanel_set_option;
 		private static IDetour hook_OuiChapterPanel_get_option;
@@ -311,8 +314,7 @@ namespace AltSidesHelper {
 				bool prevCompleted = self.Data.HasMode(AreaMode.CSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.CSide].Completed : self.Data.HasMode(AreaMode.BSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.BSide].Completed : SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.Normal].Completed;
 				foreach(var mode in meta.Sides)
 					if(!mode.OverrideVanillaSideData){
-						// TODO: "triggered" mode
-						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
+						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
 							unlockedModes++;
 							siblings++;
 							prevUnlocked = true;
