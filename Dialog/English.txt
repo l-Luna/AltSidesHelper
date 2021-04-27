@@ -4,5 +4,5 @@ leppa_AltSidesHelper_areacomplete_fullclear_bside= B-Side Clear
 leppa_AltSidesHelper_areacomplete_fullclear_cside= C-Side Clear
 leppa_AltSidesHelper_areacomplete_fullclear_dside= D-Side Clear
 
-leppa_AltSidesHelper_altside_unlocked= Alt-side Unlocked!
 leppa_AltSidesHelper_dside_unlocked= D-Side Unlocked!
+leppa_AltSidesHelper_high_difficulty= Remember to take breaks, and good luck!

@@ -1,32 +1,17 @@
 ﻿module AltSidesHelperAltSideCassette
 using ..Ahorn, Maple
 
-@mapdef Entity "AltSidesHelper/AltSideTrigger" AltSideCassette(x::Integer, y::Integer, 
+@mapdef Entity "AltSidesHelper/AltSideCassette" AltSideCassette(x::Integer, y::Integer, 
    altSideToUnlock::String="", spritePath::String="", unlockText::String="", menuSprite::String="")
 
 const placements = Ahorn.PlacementDict(
-   "Alt-side Cassette (AltSidesHelper)" => Ahorn.EntityPlacement(
-      AltSideCassette,
-      "point",
-      Dict{String, Any}(
-         "spritePath" => "collectables/cassette/",
-         "unlockText" => "leppa_AltSidesHelper_altside_unlocked",
-         "menuSprite" => "collectables/cassette"
-      ),
-      function(entity)
-          entity.data["nodes"] = [
-              (Int(entity.data["x"]) + 32, Int(entity.data["y"])),
-              (Int(entity.data["x"]) + 64, Int(entity.data["y"]))
-          ]
-      end
-   ),
    "D-Side Cassette (AltSidesHelper)" => Ahorn.EntityPlacement(
       AltSideCassette,
       "point",
       Dict{String, Any}(
-         "spritePath" => "collectables/cassette/",
+         "spritePath" => "collectables/leppa/AltSidesHelper/dside_cassette/",
          "unlockText" => "leppa_AltSidesHelper_dside_unlocked",
-         "menuSprite" => "collectables/cassette"
+         "menuSprite" => "collectables/leppa/AltSidesHelper/dside_cassette"
       ),
       function(entity)
           entity.data["nodes"] = [
