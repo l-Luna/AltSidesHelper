@@ -8,6 +8,7 @@ using MonoMod.RuntimeDetour;
 using System.Collections.Generic;
 using Monocle;
 using Microsoft.Xna.Framework;
+using System.Linq;
 
 namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
@@ -21,6 +22,7 @@ namespace AltSidesHelper {
 		private static IDetour hook_OuiChapterPanel_set_option;
 		private static IDetour hook_OuiChapterPanel_get_option;
 		private static IDetour hook_OuiChapterSelect_get_area;
+		private static IDetour hook_LevelSetStats_get_MaxArea;
 
 		// variables used for returning from alt-sides to the chapter panel
 		private int returningAltSide = -1;
@@ -68,6 +70,10 @@ namespace AltSidesHelper {
 				typeof(OuiChapterSelect).GetProperty("area", BindingFlags.NonPublic | BindingFlags.Instance).GetGetMethod(true),
 				typeof(AltSidesHelperModule).GetMethod("OnChapterSelectGetArea", BindingFlags.NonPublic | BindingFlags.Static)
 			);
+			hook_LevelSetStats_get_MaxArea = new Hook(
+				typeof(LevelSetStats).GetProperty("MaxArea", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
+				typeof(AltSidesHelperModule).GetMethod("OnLevelSetStatsGetMaxArea", BindingFlags.NonPublic | BindingFlags.Static)
+			);
 		}
 
 		public override void LoadContent(bool firstLoad) {
@@ -92,6 +98,7 @@ namespace AltSidesHelper {
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
+			hook_LevelSetStats_get_MaxArea.Dispose();
 		}
 
 		private string SetAltSideEndScreenTitle(On.Celeste.AreaComplete.orig_GetCustomCompleteScreenTitle orig, AreaComplete self) {
@@ -418,6 +425,13 @@ namespace AltSidesHelper {
 					return orig(self);
 				}
 			} else return orig(self);
+		}
+
+		private delegate int orig_LevelSetStats_get_MaxArea(LevelSetStats self);
+		private static int OnLevelSetStatsGetMaxArea(orig_LevelSetStats_get_MaxArea orig, LevelSetStats self) {
+			int prevArea = orig(self);
+			// take off any alt-sides
+			return prevArea - AreaData.Areas.Count((AreaData area) => area.GetLevelSet() == self.Name && !string.IsNullOrEmpty(GetMetaForAreaData(area)?.AltSideData.For));
 		}
 
 		private delegate int orig_OuiChapterSelect_get_area(OuiChapterSelect self);
