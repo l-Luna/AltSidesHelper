@@ -7,7 +7,6 @@ using MonoMod.Utils;
 using MonoMod.RuntimeDetour;
 using System.Collections.Generic;
 using Monocle;
-using System.Xml;
 using Microsoft.Xna.Framework;
 
 namespace AltSidesHelper {
@@ -302,10 +301,25 @@ namespace AltSidesHelper {
 			if(meta?.Sides != null) {
 				int siblings = ((IList)modesField.GetValue(self)).Count;
 				int oldModes = siblings;
-				// find the new total number of modes
+				bool bsidesunlocked = !self.Data.Interlude_Safe && self.Data.HasMode(AreaMode.BSide) && (self.DisplayedStats.Cassette || ((SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) && self.DisplayedStats.Cassette == self.RealStats.Cassette));
+				bool csidesunlocked = !self.Data.Interlude_Safe && self.Data.HasMode(AreaMode.CSide) && SaveData.Instance.UnlockedModes >= 3 && Celeste.Celeste.PlayMode != Celeste.Celeste.PlayModes.Event;
+				// find the new total number of unlocked modes
+				int unlockedModes = 0;
+				// if this map has a C-Side, this is whether they have C-sides unlocked. else, if this map has a B-Sides, its whether they have a cassette. else, true.
+				bool prevUnlocked = self.Data.HasMode(AreaMode.CSide) ? csidesunlocked : self.Data.HasMode(AreaMode.BSide) ? bsidesunlocked : true;
+				// if this map has a C-Side, this is whether they've beaten it; else, if this map has a B-Side, its whether they've completed it; else, its whether they've completed the level.
+				bool prevCompleted = self.Data.HasMode(AreaMode.CSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.CSide].Completed : self.Data.HasMode(AreaMode.BSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.BSide].Completed : SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.Normal].Completed;
 				foreach(var mode in meta.Sides)
-					if(!mode.OverrideVanillaSideData)
-						siblings++;
+					if(!mode.OverrideVanillaSideData){
+						// TODO: "triggered" mode
+						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
+							unlockedModes++;
+							siblings++;
+							prevUnlocked = true;
+							prevCompleted = SaveData.Instance.GetAreaStatsFor(AreaData.Get(mode.Map).ToKey()).Modes[(int)AreaMode.Normal].Completed;
+						} else
+							prevUnlocked = prevCompleted = false;
+					}
 				// adjust the original options to fit, and attach the map path & mode to the original options
 				int origMode = 0;
 				foreach(var vmode in (IList)modesField.GetValue(self)) {
@@ -319,8 +333,9 @@ namespace AltSidesHelper {
 				}
 
 				// apply mode settings
-				for(int i = 0; i < meta.Sides.Length; i++) {
+				for(int i = 0; i < meta.Sides.Length && i < unlockedModes; i++) {
 					AltSidesHelperMode mode = meta.Sides[i];
+					// only add if its unlocked
 					if(!mode.OverrideVanillaSideData) {
 						object newOptn;
 						((IList)modesField.GetValue(self)).Add(
@@ -543,10 +558,16 @@ namespace AltSidesHelper {
 			get;
 			set;
 		}
+
 		public string Preset {
 			get;
 			set;
 		} = "none";
+
+		public string UnlockMode {
+			get;
+			set;
+		} = "consecutive";
 
 		// Dialog key
 		public string Label {
