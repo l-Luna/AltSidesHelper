@@ -50,7 +50,6 @@ AltSideData:
 Available attributes are:
  - `IsAltSide`: Set this to true for any alt-side. If unset, it won't act as an alt-side.
  - `For`: The ID of the A-Side map. If `IsAltSide` is set but `For` is incorrect, the alt-side will function incorrectly.
- - `CopyMountainData`: Whether the alt-side should use the A-Side's mountain location... and is currently broken. (True by default.)
  - `CopyEndScreenData`: Whether the alt-side should use the A-Side's end screen. (True by default.)
 
-If `CopyEndScreenData` or `CopyMountainData` are false, you'll need to use a seperate `mapname.meta.yaml` to set those. Mountain location is currently bugged.
+If `CopyEndScreenData` is false, you'll need to use a seperate `mapname.meta.yaml` to set those.

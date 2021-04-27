@@ -251,9 +251,10 @@ namespace AltSidesHelper {
 
 		private bool FixReturnFromAltSide(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
 			AreaData newArea = null;
+			AreaData old;
 			if(start == Overworld.StartMode.AreaComplete || start == Overworld.StartMode.AreaQuit) {
 				AreaData area = AreaData.Get(SaveData.Instance.LastArea.ID);
-				var old = area;
+				old = area;
 				var meta = GetMetaForAreaData(area);
 				if(meta?.AltSideData.IsAltSide ?? false) {
 					area = AreaData.Get(meta.AltSideData.For) ?? area;
@@ -286,9 +287,6 @@ namespace AltSidesHelper {
 				shouldResetStats = false;
 				resetMethod.Invoke(self, new object[] { });
 				shouldResetStats = true;
-				overworld.Mountain.SnapState(self.Data.MountainState);
-				overworld.Mountain.SnapCamera(self.Area.ID, self.Data.MountainZoom);
-				overworld.Mountain.EaseCamera(self.Area.ID, self.Data.MountainSelect, 1f, true);
 			}
 			returningAltSide = -1;
 
@@ -447,12 +445,14 @@ namespace AltSidesHelper {
 		private void PostAreaLoad(On.Celeste.AreaData.orig_Load orig) {
 			orig();
 			var heartTextures = new HashSet<string>();
+			int altsides = 0;
 			foreach(var map in AreaData.Areas) {
 				// Load "mapdir/mapname.altsideshelper.meta.yaml" as a AltSidesHelperMeta
 				AltSidesHelperMeta meta;
 				if(Everest.Content.TryGet("Maps/" + map.Mode[0].Path + ".altsideshelper.meta", out ModAsset metadata) && metadata.TryDeserialize(out meta)) {
 					foreach(var mode in meta.Sides) {
 						mode.ApplyPreset();
+						altsides++;
 						heartTextures.Add(mode.ChapterPanelHeartIcon);
 					}
 					// Attach the meta to the AreaData w/ DynData
@@ -462,11 +462,18 @@ namespace AltSidesHelper {
 						var aside = AreaData.Get(meta.AltSideData.For);
 						if(meta.AltSideData.CopyEndScreenData)
 							map.Meta.CompleteScreen = aside.Meta.CompleteScreen;
-						if(meta.AltSideData.CopyMountainData)
-							map.Meta.Mountain = aside.Meta.Mountain;
+						map.Meta.Mountain = aside.Meta.Mountain;
+						map.MountainCursor = aside.MountainCursor;
+						map.MountainCursorScale = aside.MountainCursorScale;
+						map.MountainIdle = aside.MountainIdle;
+						map.MountainSelect = aside.MountainSelect;
+						map.MountainState = aside.MountainState;
+						map.MountainZoom = aside.MountainZoom;
 					}
 				}
 			}
+
+			Logger.Log("AltSidesHelper", $"Loaded {altsides} alt-sides!");
 
 			SpriteBank crystalHeartSwaps = new SpriteBank(GFX.Gui, "Graphics/AltSidesHelper/Empty.xml");
 
@@ -556,11 +563,6 @@ namespace AltSidesHelper {
 			get;
 			set;
 		} = "";
-
-		public bool CopyMountainData {
-			get;
-			set;
-		} = true;
 
 		public bool CopyEndScreenData {
 			get;
