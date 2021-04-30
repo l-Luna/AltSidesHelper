@@ -76,7 +76,7 @@
   <ItemGroup>
     <Compile Include="AltSidesHelperModule.cs" />
     <Compile Include="AltSidesHelperSaveData.cs" />
-    <Compile Include="Entities\AltSidesCassette.cs" />
+    <Compile Include="Entities\AltSideCassette.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Triggers\AltSideUnlockTrigger.cs" />
   </ItemGroup>

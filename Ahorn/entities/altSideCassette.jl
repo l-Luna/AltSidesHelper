@@ -26,7 +26,7 @@ Ahorn.nodeLimits(entity::AltSideCassette) = 2, 2
 
 sprite_suffix = "idle00.png"
 
-function Ahorn.selection(entity::Maple.Cassette)
+function Ahorn.selection(entity::AltSideCassette)
     x, y = Ahorn.position(entity)
     controllX, controllY = Int.(entity.data["nodes"][1])
     endX, endY = Int.(entity.data["nodes"][2])
@@ -38,7 +38,7 @@ function Ahorn.selection(entity::Maple.Cassette)
     ]
 end
 
-function Ahorn.renderSelectedAbs(ctx::Ahorn.Cairo.CairoContext, entity::Maple.Cassette)
+function Ahorn.renderSelectedAbs(ctx::Ahorn.Cairo.CairoContext, entity::AltSideCassette)
     px, py = Ahorn.position(entity)
     nodes = entity.data["nodes"]
 

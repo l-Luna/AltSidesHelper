@@ -8,8 +8,8 @@ using System.Collections;
 
 namespace AltSidesHelper.Entities {
 
-	[CustomEntity("AltSidesHelper/AltSideTrigger")]
-	class AltSidesCassette : Entity {
+	[CustomEntity("AltSidesHelper/AltSideCassette")]
+	class AltSideCassette : Entity {
 		[CustomEntity("AltSidesHelper/UnlockedAltSideCutscene")]
 		private class UnlockedAltSideCutscene : Entity {
 			private float alpha, textAlpha;
@@ -100,13 +100,13 @@ namespace AltSidesHelper.Entities {
 		private string[] unlockText;
 		private string altSideToUnlock;
 
-		public AltSidesCassette(Vector2 position, Vector2[] nodes) : base(position) {
+		public AltSideCassette(Vector2 position, Vector2[] nodes) : base(position) {
 			Collider = new Hitbox(16f, 16f, -8f, -8f);
 			this.nodes = nodes;
 			Add(new PlayerCollider(OnPlayer));
 		}
 
-		public AltSidesCassette(EntityData data, Vector2 offset) : this(data.Position + offset, data.NodesOffset(offset)) {
+		public AltSideCassette(EntityData data, Vector2 offset) : this(data.Position + offset, data.NodesOffset(offset)) {
 			spritePath = data.Attr("spritePath", "collectables/cassette/");
 			unlockText = data.Attr("unlockText", "leppa_AltSidesHelper_altside_unlocked").Split(',');
 			menuSprite = data.Attr("menuSprite", "collectables/cassette");
