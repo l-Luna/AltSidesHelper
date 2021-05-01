@@ -10,10 +10,10 @@ The A-Side meta defines a list of additional sides to be added, and how they sho
 
 ## A-Side ASH meta
 
-Here's an example for the map `leppa/RecursiveSpace/RecursiveSpace.bin`, with `leppa/RecursiveSpace/RecursiveSpace-D` to be added as a D-Side.
+Here's an example for the map `examplemodder/ExampleMod/ExampleMap.bin`, with `examplemodder/ExampleMod/ExampleMap-D` to be added as a D-Side.
 ```yaml
 Sides:
-- Map: "leppa/RecursiveSpace/RecursiveSpace-D"
+- Map: "examplemodder/ExampleMod/ExampleMap-D"
   Preset: "d-side"
 ```
 
@@ -44,7 +44,7 @@ Here's an example for the same map pair:
 ```yaml
 AltSideData:
   IsAltSide: true
-  For: "leppa/RecursiveSpace/RecursiveSpace"
+  For: "examplemodder/ExampleMod/ExampleMap"
 ```
 
 Available attributes are:
@@ -53,3 +53,12 @@ Available attributes are:
  - `CopyEndScreenData`: Whether the alt-side should use the A-Side's end screen. (True by default.)
 
 If `CopyEndScreenData` is false, you'll need to use a seperate `mapname.meta.yaml` to set those.
+
+## Alt-side Cassette and Alt-side Unlock Trigger
+An alt-side that has its `UnlockMode` set to `triggered` must be unlocked using either the Alt-side Unlock Trigger or an Alt-side Cassette. The Unlock Trigger unlocks it upon being entered, and the cassette unlocks it when collected.
+
+Both have the attribute "Alt Side To Unlock". Put in the ID of the map to be unlocked there (e.g. `examplemodder/ExampleMod/ExampleMap-D`).
+The cassette has additional attributes that specify what sprites and text it uses. By default, it uses assets supplied by AltSidesHelper for a D-Side.
+ - Sprite Path: The sprites to be used for the cassette in-world. `collectables/leppa/AltSidesHelper/dside_cassette/` by default. `collectables/cassette/` for the vanilla sprite.
+ - Unlock Text: A comma seperated list of dialog keys for captions to be displayed in the unlock cutscene. `leppa_AltSidesHelper_dside_unlocked` ("D-Side Unlocked") by default. `OVERWORLD_REMIX_UNLOCKED` for vanilla text ("B-Side unlocked").
+ - Menu Sprite: The image to be displayed in the unlock cutscene. `collectables/leppa/AltSidesHelper/dside_cassette` by default. `collectables/cassette` for the vanilla sprite.

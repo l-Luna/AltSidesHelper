@@ -4,7 +4,7 @@
     <TargetFrameworks>net452</TargetFrameworks>
     <AssemblyName>AltSidesHelper</AssemblyName>
     <RootNamespace>AltSidesHelper</RootNamespace>
-    <LangVersion>9</LangVersion>
+    <LangVersion>8</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 

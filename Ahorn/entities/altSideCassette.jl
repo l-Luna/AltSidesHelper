@@ -5,7 +5,7 @@ using ..Ahorn, Maple
    altSideToUnlock::String="", spritePath::String="", unlockText::String="", menuSprite::String="")
 
 const placements = Ahorn.PlacementDict(
-   "D-Side Cassette (AltSidesHelper)" => Ahorn.EntityPlacement(
+   "Alt-side Cassette (AltSidesHelper)" => Ahorn.EntityPlacement(
       AltSideCassette,
       "point",
       Dict{String, Any}(
