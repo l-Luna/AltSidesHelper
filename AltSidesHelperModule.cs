@@ -115,32 +115,44 @@ namespace AltSidesHelper {
 
 		private void SetCrystalHeartSprite(On.Celeste.HeartGem.orig_Awake orig, HeartGem self, Scene scene) {
 			orig(self, scene);
-			if(!self.IsGhost && !self.IsFake) {
+			if(!self.IsFake) {
 				var meta = GetModeMetaForAltSide(AreaData.Get((scene as Level).Session.Area));
 				if(meta != null) {
 					var selfdata = new DynData<HeartGem>(self);
-					var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
-					sprite.CenterOrigin();
-					sprite.AddLoop("idle", "", 0, new int[] { 0 });
-					sprite.AddLoop("spin", "", 0.1f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
-					sprite.AddLoop("fastspin", "", 0.1f);
-					sprite.CenterOrigin();
-					sprite.OnLoop = delegate (string anim) {
-						if(self.Visible && anim == "spin" && (bool)selfdata["autoPulse"]) {
-							Audio.Play("event:/game/general/crystalheart_pulse", self.Position);
-							self.ScaleWiggler.Start();
-							(scene as Level).Displacement.AddBurst(self.Position, 0.35f, 8f, 48f, 0.25f);
-						}
+					if(!self.IsGhost) {
+						var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
+						sprite.CenterOrigin();
+						sprite.AddLoop("idle", "", 0, new int[] { 0 });
+						sprite.AddLoop("spin", "", 0.1f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
+						sprite.AddLoop("fastspin", "", 0.1f);
+						sprite.CenterOrigin();
+						sprite.OnLoop = delegate (string anim) {
+							if(self.Visible && anim == "spin" && (bool)selfdata["autoPulse"]) {
+								Audio.Play("event:/game/general/crystalheart_pulse", self.Position);
+								self.ScaleWiggler.Start();
+								(scene as Level).Displacement.AddBurst(self.Position, 0.35f, 8f, 48f, 0.25f);
+							}
+						};
+						sprite.Play("spin");
+						self.ScaleWiggler.RemoveSelf();
+						self.ScaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f) {
+							sprite.Scale = Vector2.One * (1f + f * 0.25f);
+						});
+						self.Add(self.ScaleWiggler);
+						((Component)selfdata["sprite"]).RemoveSelf();
+						selfdata["sprite"] = sprite;
+						self.Add(sprite);
+					}
+
+					var colour = Calc.HexToColor(meta.HeartColour);
+					selfdata["shineParticle"] = new ParticleType(HeartGem.P_BlueShine) {
+						Color = colour
 					};
-					sprite.Play("spin");
-					self.ScaleWiggler.RemoveSelf();
-					self.ScaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f) {
-						sprite.Scale = Vector2.One * (1f + f * 0.25f);
-					});
-					self.Add(self.ScaleWiggler);
-					((Component)selfdata["sprite"]).RemoveSelf();
-					selfdata["sprite"] = sprite;
-					self.Add(sprite);
+
+					selfdata.Get<VertexLight>("light").RemoveSelf();
+					var newLight = new VertexLight(Color.Lerp(colour, Color.White, 0.5f), 1f, 32, 64);
+					self.Add(newLight);
+					selfdata["light"] = newLight;
 				}
 			}
 		}
@@ -235,8 +247,8 @@ namespace AltSidesHelper {
 				foreach(var mode in parentHelperMeta.Sides)
 					if(mode.Map.Equals(sid)) {
 						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
-						if(!mode.PoemDisplayColor.Equals(""))
-							color = Calc.HexToColor(mode.PoemDisplayColor);
+						if(!mode.HeartColour.Equals(""))
+							color = Calc.HexToColor(mode.HeartColour);
 					}
 
 			if(animId != null)
@@ -630,7 +642,7 @@ namespace AltSidesHelper {
 		} = "";
 
 		// Hex colour code
-		public string PoemDisplayColor {
+		public string HeartColour {
 			get;
 			set;
 		} = "";
@@ -660,7 +672,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/0/spin";
 				InWorldHeartIcon = "collectables/heartGem/0/";
 				JournalHeartIcon = "heartgem0";
-				PoemDisplayColor = "8cc7fa";
+				HeartColour = "8cc7fa";
 				EndScreenTitle = "AREACOMPLETE_NORMAL";
 				EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR";
 			} else if(Preset.Equals("b-side")) {
@@ -670,7 +682,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/1/spin";
 				InWorldHeartIcon = "collectables/heartGem/1/";
 				JournalHeartIcon = "heartgem1";
-				PoemDisplayColor = "ff668a";
+				HeartColour = "ff668a";
 				EndScreenTitle = "AREACOMPLETE_BSIDE";
 				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside";
 			} else if(Preset.Equals("c-side")) {
@@ -680,7 +692,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/heartgem/2/spin";
 				InWorldHeartIcon = "collectables/heartGem/2/";
 				JournalHeartIcon = "heartgem2";
-				PoemDisplayColor = "fffc24";
+				HeartColour = "fffc24";
 				EndScreenTitle = "AREACOMPLETE_CSIDE";
 				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside";
 			} else if(Preset.Equals("d-side")) {
@@ -691,7 +703,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside";
 				InWorldHeartIcon = "collectables/heartGem/3/";
 				JournalHeartIcon = "heartgem2";
-				PoemDisplayColor = "ffffff";
+				HeartColour = "ffffff";
 				EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside";
 				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside";
 			}
