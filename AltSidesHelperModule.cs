@@ -49,6 +49,7 @@ namespace AltSidesHelper {
 			On.Celeste.OuiChapterPanel.UpdateStats += FixSettingAltSideStats;
 			On.Celeste.OuiChapterPanel.SetStatsPosition += FixSettingAltSideStatPositions;
 			On.Celeste.AreaData.Load += PostAreaLoad;
+			On.Celeste.AreaData.AreaComparison += SortAltSidesLast;
 			On.Celeste.OuiChapterSelect.Added += HideAltSides;
 			On.Celeste.OuiChapterSelect.IsStart += ReturnToAltSide;
 			On.Celeste.Poem.ctor += SetPoemColour;
@@ -86,6 +87,7 @@ namespace AltSidesHelper {
 			On.Celeste.OuiChapterPanel.UpdateStats -= FixSettingAltSideStats;
 			On.Celeste.OuiChapterPanel.SetStatsPosition -= FixSettingAltSideStatPositions;
 			On.Celeste.AreaData.Load -= PostAreaLoad;
+			On.Celeste.AreaData.AreaComparison -= SortAltSidesLast;
 			On.Celeste.OuiChapterSelect.Added -= HideAltSides;
 			On.Celeste.OuiChapterSelect.IsStart -= ReturnToAltSide;
 			On.Celeste.Poem.ctor -= SetPoemColour;
@@ -101,11 +103,19 @@ namespace AltSidesHelper {
 			hook_LevelSetStats_get_MaxArea.Dispose();
 		}
 
+		private int SortAltSidesLast(On.Celeste.AreaData.orig_AreaComparison orig, AreaData a, AreaData b) {
+			if(!string.IsNullOrEmpty(GetMetaForAreaData(a)?.AltSideData?.For) && string.IsNullOrEmpty(GetMetaForAreaData(b)?.AltSideData?.For))
+				return 1;
+			if(string.IsNullOrEmpty(GetMetaForAreaData(a)?.AltSideData?.For) && !string.IsNullOrEmpty(GetMetaForAreaData(b)?.AltSideData?.For))
+				return -1;
+			return orig(a, b);
+		}
+
 		private string SetAltSideEndScreenTitle(On.Celeste.AreaComplete.orig_GetCustomCompleteScreenTitle orig, AreaComplete self) {
 			var ret = orig(self);
 			var meta = GetModeMetaForAltSide(AreaData.Get(self.Session.Area));
 			if(meta != null) {
-				if(meta.CanFullClear && self.Session.FullClear && !meta.EndScreenClearTitle.Equals(""))
+				if(meta.CanFullClear && (!meta.CassetteNeededForFullClear || self.Session.Cassette) && (!meta.HeartNeededForFullClear || self.Session.HeartGem) && (self.Session.Strawberries.Count >= self.Session.MapData.DetectedStrawberries) && !meta.EndScreenClearTitle.Equals(""))
 					return Dialog.Clean(meta.EndScreenClearTitle);
 				if(!meta.EndScreenTitle.Equals(""))
 					return Dialog.Clean(meta.EndScreenTitle);
@@ -283,7 +293,7 @@ namespace AltSidesHelper {
 						foreach(var mode in asideAltSideMeta.Sides)
 							if(!mode.OverrideVanillaSideData) {
 								returningSide++;
-								if(mode.Map.Equals(area.GetSID()))
+								if(mode.Map.Equals(old.GetSID()))
 									break;
 							}
 
@@ -331,7 +341,7 @@ namespace AltSidesHelper {
 				bool prevCompleted = self.Data.HasMode(AreaMode.CSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.CSide].Completed : self.Data.HasMode(AreaMode.BSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.BSide].Completed : SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.Normal].Completed;
 				foreach(var mode in meta.Sides)
 					if(!mode.OverrideVanillaSideData){
-						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
+						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || (mode.UnlockMode.Equals("c_sides_unlocked") && csidesunlocked) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
 							unlockedModes++;
 							siblings++;
 							prevUnlocked = true;
@@ -481,6 +491,10 @@ namespace AltSidesHelper {
 						map.MountainSelect = aside.MountainSelect;
 						map.MountainState = aside.MountainState;
 						map.MountainZoom = aside.MountainZoom;
+						map.TitleAccentColor = aside.TitleAccentColor;
+						map.TitleBaseColor = aside.TitleBaseColor;
+						map.TitleTextColor = aside.TitleTextColor;
+						map.Name = aside.Name;
 					}
 				}
 			}
@@ -658,11 +672,21 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
-		// Whether the alt-side can be full cleared, for the title
+		// Full-clear info
 		public bool CanFullClear {
 			get;
 			set;
 		} = false;
+
+		public bool CassetteNeededForFullClear {
+			get;
+			set;
+		} = true;
+
+		public bool HeartNeededForFullClear {
+			get;
+			set;
+		} = true;
 
 		public void ApplyPreset() {
 			if(Preset.Equals("a-side")){

@@ -177,6 +177,7 @@ namespace AltSidesHelper.Entities {
 			level.PauseLock = true;
 			level.Frozen = true;
 			Tag = Tags.FrozenUpdate;
+			// TODO: attribute for setting this?
 			level.Session.Cassette = true;
 			level.Session.RespawnPoint = level.GetSpawnPoint(nodes[1]);
 			level.Session.UpdateLevelStartDashes();

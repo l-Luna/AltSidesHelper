@@ -6,3 +6,11 @@ leppa_AltSidesHelper_areacomplete_fullclear_dside= D-Side Clear
 
 leppa_AltSidesHelper_dside_unlocked= D-Side Unlocked
 leppa_AltSidesHelper_high_difficulty= Remember to take breaks, and good luck!
+
+leppa_AltSidesHelper= Alt Sides Helper
+leppa_AltSidesHelper_AltSidesHelperTest= Alt-sides Helper Test
+
+poem_leppa_AltSidesHelper_AltSidesHelperTest_A= A-Side Heart
+poem_leppa_AltSidesHelper_AltSidesHelperTest_B_A= B-Side Heart
+poem_leppa_AltSidesHelper_AltSidesHelperTest_C_A= C-Side Heart
+poem_leppa_AltSidesHelper_AltSidesHelperTest_D_A= D-Side Heart

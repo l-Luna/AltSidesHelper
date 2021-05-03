@@ -1,0 +1,14 @@
+Sides:
+- Map: "leppa/AltSidesHelper/AltSidesHelperTest_B"
+  Preset: "b-side"
+  CanFullClear: true
+  CassetteNeededForFullClear: false
+- Map: "leppa/AltSidesHelper/AltSidesHelperTest_C"
+  Preset: "c-side"
+  CanFullClear: true
+  CassetteNeededForFullClear: false
+- Map: "leppa/AltSidesHelper/AltSidesHelperTest_D"
+  Preset: "d-side"
+  CanFullClear: true
+  CassetteNeededForFullClear: false
+  UnlockMode: "triggered"

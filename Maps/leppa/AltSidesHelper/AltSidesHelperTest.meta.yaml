@@ -1,0 +1,59 @@
+Mountain:
+  Idle:
+    Position: [9.626, 8.824, -4.140]
+    Target: [7.924, 8.240, -3.267]
+  Select:
+    Position: [8.429, 5.837, -5.086]
+    Target: [6.662, 6.019, -4.167]
+  Zoom:
+    Position: [7.036, 5.347, -3.231]
+    Target: [5.522, 5.584, -1.946]
+  Cursor: [4.481695, 6.766555, -2.226157]
+  State: 2
+  ShowCore: false
+
+CompleteScreen:
+  Title:
+    ASide: 'AREACOMPLETE_NORMAL' # A-side complete ("Chapter Complete")
+    BSide: 'AREACOMPLETE_BSIDE' # B-side complete ("B-Side Complete")
+    CSide: 'AREACOMPLETE_CSIDE' # C-side complete ("C-Side Complete")
+    FullClear: 'AREACOMPLETE_NORMAL_FULLCLEAR' # A-side full clear ("Chapter Clear")
+  Atlas: "Core"
+  Start: [ 0, 200 ]
+  Center: [ 0, 0 ]
+  Offset: [ -108, -110 ]
+  Layers:
+  - Type: "layer"
+    Images: [ "01" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0 ]
+    Scale: 2
+  - Type: "layer"
+    Images: [ "02" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.02 ]
+  - Type: "layer"
+    Images: [ "03" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.06 ]
+    Scale: 2
+  - Type: "layer"
+    Images: [ "04" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.08 ]
+    Scale: 2
+  - Type: "layer"
+    Images: [ "05" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.1 ]
+  - Type: "layer"
+    Images: [ "06" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.12 ]
+    Scale: 2
+  - Type: "layer"
+    Images: [ "07" ]
+    Position: [ 0, 0 ]
+    Scroll: [ 0.16 ]
+    Scale: 2
+  - Type: "ui" # don't forget to add this line for your text to appear
