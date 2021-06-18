@@ -245,6 +245,9 @@ namespace AltSidesHelper {
 		}
 
 		private void SetPoemColour(On.Celeste.Poem.orig_ctor orig, Poem self, string text, int heartIndex, float heartAlpha) {
+			var m = GetModeMetaForAltSide(AreaData.Get((Engine.Scene as Level).Session.Area));
+			if (!(m?.ShowHeartPoem) ?? false)
+				text = null;
 			orig(self, text, heartIndex, heartAlpha);
 			// customize heart gem icon
 			string animId = null;
@@ -261,7 +264,6 @@ namespace AltSidesHelper {
 						if(!mode.HeartColour.Equals(""))
 							color = Calc.HexToColor(mode.HeartColour);
 					}
-
 			if(animId != null)
 				if(HeartSpriteBank.Has(animId)) {
 					HeartSpriteBank.CreateOn(self.Heart, animId);
@@ -662,10 +664,10 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
-		public bool ShowHeartPoem {
+		public bool? ShowHeartPoem {
 			get;
 			set;
-		} = true;
+		} = null;
 
 		// Currently unused
 		public bool ShowBSideRemixInto{
@@ -794,6 +796,8 @@ namespace AltSidesHelper {
 				EndScreenTitle = from.EndScreenTitle;
 			if (string.IsNullOrEmpty(EndScreenClearTitle))
 				EndScreenClearTitle = from.EndScreenClearTitle;
+			if (ShowHeartPoem == null)
+				ShowHeartPoem = from.ShowHeartPoem;
 		}
 
 		public AltSidesHelperMode Copy() {
