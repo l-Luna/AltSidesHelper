@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Monocle;
 using Microsoft.Xna.Framework;
 using System.Linq;
+using MonoMod.Cil;
 
 namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
@@ -661,6 +662,17 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
+		public bool ShowHeartPoem {
+			get;
+			set;
+		} = true;
+
+		// Currently unused
+		public bool ShowBSideRemixInto{
+			get;
+			set;
+		} = false;
+
 		// For overriding vanilla side data
 		public bool OverrideVanillaSideData {
 			get;
@@ -688,49 +700,115 @@ namespace AltSidesHelper {
 			set;
 		} = true;
 
+		private static readonly AltSidesHelperMode A_SIDE_PRESET = new AltSidesHelperMode()
+		{
+			Label = "OVERWORLD_NORMAL",
+			Icon = "menu/play",
+			DeathsIcon = "collectables/skullBlue",
+			ChapterPanelHeartIcon = "collectables/heartgem/0/spin",
+			InWorldHeartIcon = "collectables/heartGem/0/",
+			JournalHeartIcon = "heartgem0",
+			HeartColour = "8cc7fa",
+			EndScreenTitle = "AREACOMPLETE_NORMAL",
+			EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR",
+			ShowHeartPoem = true,
+			ShowBSideRemixInto = false
+		};
+
+		private static readonly AltSidesHelperMode B_SIDE_PRESET = new AltSidesHelperMode()
+		{
+			Label = "OVERWORLD_REMIX",
+			Icon = "menu/remix",
+			DeathsIcon = "collectables/skullRed",
+			ChapterPanelHeartIcon = "collectables/heartgem/1/spin",
+			InWorldHeartIcon = "collectables/heartGem/1/",
+			JournalHeartIcon = "heartgem1",
+			HeartColour = "ff668a",
+			EndScreenTitle = "AREACOMPLETE_BSIDE",
+			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside",
+			ShowHeartPoem = true,
+			ShowBSideRemixInto = true
+		};
+
+		private static readonly AltSidesHelperMode C_SIDE_PRESET = new AltSidesHelperMode()
+		{
+			Label = "OVERWORLD_REMIX2",
+			Icon = "menu/rmx2",
+			DeathsIcon = "collectables/skullGold",
+			ChapterPanelHeartIcon = "collectables/heartgem/2/spin",
+			InWorldHeartIcon = "collectables/heartGem/2/",
+			JournalHeartIcon = "heartgem2",
+			HeartColour = "fffc24",
+			EndScreenTitle = "AREACOMPLETE_CSIDE",
+			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside",
+			ShowHeartPoem = false,
+			ShowBSideRemixInto = false
+		};
+
+		private static readonly AltSidesHelperMode D_SIDE_PRESET = new AltSidesHelperMode()
+		{
+			// TODO: Missing icons
+			Label = "leppa_AltSidesHelper_overworld_remix3",
+			Icon = "menu/leppa/AltSidesHelper/rmx3",
+			DeathsIcon = "collectables/skullGold",
+			ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside",
+			InWorldHeartIcon = "collectables/heartGem/3/",
+			JournalHeartIcon = "heartgem2",
+			HeartColour = "ffffff",
+			EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside",
+			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside",
+			ShowHeartPoem = true,
+			ShowBSideRemixInto = false
+		};
+
+		// TODO: allow defining custom presets
+
 		public void ApplyPreset() {
 			if(Preset.Equals("a-side")){
-				Label = "OVERWORLD_NORMAL";
-				Icon = "menu/play";
-				DeathsIcon = "collectables/skullBlue";
-				ChapterPanelHeartIcon = "collectables/heartgem/0/spin";
-				InWorldHeartIcon = "collectables/heartGem/0/";
-				JournalHeartIcon = "heartgem0";
-				HeartColour = "8cc7fa";
-				EndScreenTitle = "AREACOMPLETE_NORMAL";
-				EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR";
+				CopySettings(A_SIDE_PRESET);
 			} else if(Preset.Equals("b-side")) {
-				Label = "OVERWORLD_REMIX";
-				Icon = "menu/remix";
-				DeathsIcon = "collectables/skullRed";
-				ChapterPanelHeartIcon = "collectables/heartgem/1/spin";
-				InWorldHeartIcon = "collectables/heartGem/1/";
-				JournalHeartIcon = "heartgem1";
-				HeartColour = "ff668a";
-				EndScreenTitle = "AREACOMPLETE_BSIDE";
-				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside";
+				CopySettings(B_SIDE_PRESET);
 			} else if(Preset.Equals("c-side")) {
-				Label = "OVERWORLD_REMIX2";
-				Icon = "menu/rmx2";
-				DeathsIcon = "collectables/skullGold";
-				ChapterPanelHeartIcon = "collectables/heartgem/2/spin";
-				InWorldHeartIcon = "collectables/heartGem/2/";
-				JournalHeartIcon = "heartgem2";
-				HeartColour = "fffc24";
-				EndScreenTitle = "AREACOMPLETE_CSIDE";
-				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside";
+				CopySettings(C_SIDE_PRESET);
 			} else if(Preset.Equals("d-side")) {
-				// TODO: Missing icons
-				Label = "leppa_AltSidesHelper_overworld_remix3";
-				Icon = "menu/leppa/AltSidesHelper/rmx3";
-				DeathsIcon = "collectables/skullGold";
-				ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside";
-				InWorldHeartIcon = "collectables/heartGem/3/";
-				JournalHeartIcon = "heartgem2";
-				HeartColour = "ffffff";
-				EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside";
-				EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside";
+				CopySettings(D_SIDE_PRESET);
 			}
+		}
+
+		public void CopySettings(AltSidesHelperMode from) {
+			if (string.IsNullOrEmpty(Label))
+				Label = from.Label;
+			if (string.IsNullOrEmpty(Icon))
+				Icon = from.Icon;
+			if (string.IsNullOrEmpty(DeathsIcon))
+				DeathsIcon = from.DeathsIcon;
+			if (string.IsNullOrEmpty(ChapterPanelHeartIcon))
+				ChapterPanelHeartIcon = from.ChapterPanelHeartIcon;
+			if (string.IsNullOrEmpty(InWorldHeartIcon))
+				InWorldHeartIcon = from.InWorldHeartIcon;
+			if (string.IsNullOrEmpty(JournalHeartIcon))
+				JournalHeartIcon = from.JournalHeartIcon;
+			if (string.IsNullOrEmpty(HeartColour))
+				HeartColour = from.HeartColour;
+			if (string.IsNullOrEmpty(EndScreenTitle))
+				EndScreenTitle = from.EndScreenTitle;
+			if (string.IsNullOrEmpty(EndScreenClearTitle))
+				EndScreenClearTitle = from.EndScreenClearTitle;
+		}
+
+		public AltSidesHelperMode Copy() {
+			var th = this;
+			return new AltSidesHelperMode {
+				Label = th.Label,
+				Icon = th.Icon,
+				DeathsIcon = th.DeathsIcon,
+				ChapterPanelHeartIcon = th.ChapterPanelHeartIcon,
+				InWorldHeartIcon = th.InWorldHeartIcon,
+				JournalHeartIcon = th.JournalHeartIcon,
+				HeartColour = th.HeartColour,
+				EndScreenTitle = th.EndScreenTitle,
+				EndScreenClearTitle = th.EndScreenClearTitle
+			};
 		}
 	}
 }
