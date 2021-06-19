@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using Monocle;
 using Microsoft.Xna.Framework;
 using System.Linq;
-using MonoMod.Cil;
 
 namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
@@ -57,6 +56,7 @@ namespace AltSidesHelper {
 			On.Celeste.DeathsCounter.SetMode += SetDeathsCounterIcon;
 			On.Celeste.HeartGem.Awake += SetCrystalHeartSprite;
 			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle += SetAltSideEndScreenTitle;
+			On.Celeste.LevelEnter.Routine += AddAltSideRemixTitle;
 
 			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
 
@@ -95,6 +95,7 @@ namespace AltSidesHelper {
 			On.Celeste.DeathsCounter.SetMode -= SetDeathsCounterIcon;
 			On.Celeste.HeartGem.Awake -= SetCrystalHeartSprite;
 			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle -= SetAltSideEndScreenTitle;
+			On.Celeste.LevelEnter.Routine -= AddAltSideRemixTitle;
 
 			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
 
@@ -551,6 +552,23 @@ namespace AltSidesHelper {
 			}
 		}
 
+		private IEnumerator AddAltSideRemixTitle(On.Celeste.LevelEnter.orig_Routine orig, LevelEnter self){
+			var data = new DynData<LevelEnter>(self);
+			var session = data.Get<Session>("session");
+
+			if (session.StartedFromBeginning && !data.Get<bool>("fromSaveData") && (GetModeMetaForAltSide(AreaData.Get(session.Area))?.ShowBSideRemixIntro ?? false)){
+				AltSideTitle title = new AltSideTitle(session);
+				self.Add(title);
+				Audio.Play("event:/ui/main/bside_intro_text");
+				yield return title.EaseIn();
+				yield return 0.25f;
+				yield return title.EaseOut();
+				yield return 0.25f;
+			}
+
+			yield return new SwapImmediately(orig(self));
+		}
+
 		public static AltSidesHelperMeta GetMetaForAreaData(AreaData data){
 			if(data == null)
 				return null;
@@ -669,11 +687,10 @@ namespace AltSidesHelper {
 			set;
 		} = null;
 
-		// Currently unused
-		public bool ShowBSideRemixInto{
+		public bool? ShowBSideRemixIntro{
 			get;
 			set;
-		} = false;
+		} = null;
 
 		// For overriding vanilla side data
 		public bool OverrideVanillaSideData {
@@ -714,7 +731,7 @@ namespace AltSidesHelper {
 			EndScreenTitle = "AREACOMPLETE_NORMAL",
 			EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR",
 			ShowHeartPoem = true,
-			ShowBSideRemixInto = false
+			ShowBSideRemixIntro = false
 		};
 
 		private static readonly AltSidesHelperMode B_SIDE_PRESET = new AltSidesHelperMode()
@@ -729,7 +746,7 @@ namespace AltSidesHelper {
 			EndScreenTitle = "AREACOMPLETE_BSIDE",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside",
 			ShowHeartPoem = true,
-			ShowBSideRemixInto = true
+			ShowBSideRemixIntro = true
 		};
 
 		private static readonly AltSidesHelperMode C_SIDE_PRESET = new AltSidesHelperMode()
@@ -744,7 +761,7 @@ namespace AltSidesHelper {
 			EndScreenTitle = "AREACOMPLETE_CSIDE",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside",
 			ShowHeartPoem = false,
-			ShowBSideRemixInto = false
+			ShowBSideRemixIntro = false
 		};
 
 		private static readonly AltSidesHelperMode D_SIDE_PRESET = new AltSidesHelperMode()
@@ -760,7 +777,7 @@ namespace AltSidesHelper {
 			EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside",
 			ShowHeartPoem = true,
-			ShowBSideRemixInto = false
+			ShowBSideRemixIntro = false
 		};
 
 		// TODO: allow defining custom presets
@@ -798,6 +815,8 @@ namespace AltSidesHelper {
 				EndScreenClearTitle = from.EndScreenClearTitle;
 			if (ShowHeartPoem == null)
 				ShowHeartPoem = from.ShowHeartPoem;
+			if (ShowBSideRemixIntro == null)
+				ShowBSideRemixIntro = from.ShowBSideRemixIntro;
 		}
 
 		public AltSidesHelperMode Copy() {
@@ -811,7 +830,9 @@ namespace AltSidesHelper {
 				JournalHeartIcon = th.JournalHeartIcon,
 				HeartColour = th.HeartColour,
 				EndScreenTitle = th.EndScreenTitle,
-				EndScreenClearTitle = th.EndScreenClearTitle
+				EndScreenClearTitle = th.EndScreenClearTitle,
+				ShowHeartPoem = th.ShowHeartPoem,
+				ShowBSideRemixIntro = th.ShowBSideRemixIntro
 			};
 		}
 	}

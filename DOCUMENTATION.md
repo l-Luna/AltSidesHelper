@@ -19,7 +19,7 @@ Sides:
 
 Here's the full list of attributes that are already functional that you can set in the A-Side meta, for each side:
  - `Map`: The ID of the map to be used - the map's path from `Maps/` minus `.bin`.
- - `Preset`: One of `a-side`, `b-side`, `c-side`, and `d-side`, `none` (default), or unset. Setting this overrides all attributes minus `Map` to follow that particular side, with `d-side` using assets provided by AltSidesHelper. You can leave this unset (or set to `none`) to set all values manually. These values are listed for each attribute.
+ - `Preset`: One of `a-side`, `b-side`, `c-side`, and `d-side`, `none` (default), or unset. Setting this will set all attributes that you haven't specified, to follow that particular side, with `d-side` using assets provided by AltSidesHelper. You can leave this unset (or set to `none`) to set all values manually. These values are listed for each attribute.
  - `UnlockMode`: Decides when the alt-side should be available for selection. One of `consecutively` (default), which unlocks this alt-side after the previous mode; `always`, which makes this alt-side always available (if the A-Side is unlocked); `triggered`, which makes this alt-side hidden until it's unlocked by an `Alt-side Cassette` or `Alt-side Unlock Trigger`; `with_previous`, which unlocks this alt-side when the previous one is unlocked; or `c_sides_unlocked`, which unlockes this alt-side when C-Sides are unlocked for that save file.
  - `Label`: The dialog key of text that appears when this side is selected. (A-Side is `OVERWORLD_NORMAL`, B-Side is `OVERWORLD_REMIX`, C-Side is `OVERWORLD_REMIX2`, D-Side is `leppa_AltSidesHelper_overworld_remix3`.)
  - `Icon`: The image to be displayed on the chapter select panel for that side. (`menu/play`, `menu/remix`, `menu/rmx2`, `menu/leppa/AltSidesHelper/rmx3`)
@@ -32,6 +32,8 @@ Here's the full list of attributes that are already functional that you can set 
  - `CanFullClear`: If true, `EndScreenClearTitle` will be used for the end screen title after a full clear. (`false`)
  - `CassetteNeededForFullClear`: Whether the player must collect a cassette (vanilla or alt-side) to full clear. (`true`)
  - `HeartNeededForFullClear`: Whether the player must collect a crystal heart to full clear. (`true`)
+ - `ShowHeartPoem`: Whether the crystal heart should show text when collected. (`true` except in `c-side`.)
+ - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "{map name}_remix_artist", "{map name}_remix", and "{map name}_remix_album" dialog keys will display those just like a vanilla B-Side. Setting the "{map name}_altsides_remix_intro" dialog key will allow your to instead write your own list of text, with as many lines as you want.
 
 The following attributes can be set, but are currently unimplemented:
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
