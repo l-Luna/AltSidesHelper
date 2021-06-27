@@ -34,6 +34,7 @@ Here's the full list of attributes that are already functional that you can set 
  - `HeartNeededForFullClear`: Whether the player must collect a crystal heart to full clear. (`true`)
  - `ShowHeartPoem`: Whether the crystal heart should show text when collected. (`true` except in `c-side`.)
  - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "{map name}_remix_artist", "{map name}_remix", and "{map name}_remix_album" dialog keys will display those just like a vanilla B-Side. Setting the "{map name}_altsides_remix_intro" dialog key will allow your to instead write your own list of text, with as many lines as you want.
+ - `OverrideHeartTextures`: Whether the in-world heart, chapter panel heart, and heart poem textures and colours should be overriden to match `ChapterPanelHeartIcon`, `HeartColour`, and `InWorldHeartIcon`. `true` by default, but you might want to disable this if you're using e.g. Collab Utils 2's options for overriding the heart textures and colour.
 
 The following attributes can be set, but are currently unimplemented:
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)

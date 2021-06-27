@@ -129,7 +129,7 @@ namespace AltSidesHelper {
 			orig(self, scene);
 			if(!self.IsFake) {
 				var meta = GetModeMetaForAltSide(AreaData.Get((scene as Level).Session.Area));
-				if(meta != null) {
+				if(meta != null && meta.OverrideHeartTextures) {
 					var selfdata = new DynData<HeartGem>(self);
 					if(!self.IsGhost) {
 						var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
@@ -227,7 +227,7 @@ namespace AltSidesHelper {
 			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(panel.Area))?.AltSideData?.For));
 			if(parentHelperMeta != null)
 				foreach(var mode in parentHelperMeta.Sides)
-					if(mode.Map.Equals(panel.Area.SID))
+					if(mode.Map.Equals(panel.Area.SID) && mode.OverrideHeartTextures)
 						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
 
 			if(animId != null) {
@@ -260,7 +260,7 @@ namespace AltSidesHelper {
 			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(sid))?.AltSideData?.For));
 			if(parentHelperMeta != null)
 				foreach(var mode in parentHelperMeta.Sides)
-					if(mode.Map.Equals(sid)) {
+					if(mode.Map.Equals(sid) && mode.OverrideHeartTextures) {
 						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
 						if(!mode.HeartColour.Equals(""))
 							color = Calc.HexToColor(mode.HeartColour);
@@ -633,6 +633,11 @@ namespace AltSidesHelper {
 			get;
 			set;
 		} = "consecutive";
+
+		public bool OverrideHeartTextures {
+			get;
+			set;
+		} = true;
 
 		// Dialog key
 		public string Label {
