@@ -6,7 +6,7 @@ First, create your alt-sides as seperate maps. Feel free to use any naming schem
 
 Then create a `mapname.altsideshelper.meta.yaml` file (analogous to Everest's `mapname.meta.yaml` file) for *both* your A-Side and alt-side. The alt-side does not need a regular `.meta.yaml` file.
 
-The A-Side meta defines a list of additional sides to be added, and how they should appear. (This will eventually be extended to allow overriding vanilla side attributes.) The alt-side's meta tells ASH to hide it and return the player to the proper place, among other things.
+The A-Side meta defines a list of additional sides to be added, and how they should appear, as well as overriding the A-Side's attributes. (Vanilla-style B-Sides and C-Sides cannot be customised in this way; use the `b-side` or `c-side` presets to create an ASH-style one instead.) The alt-side's meta tells ASH to hide it and return the player to the proper place, among other things.
 
 ## A-Side ASH meta
 
@@ -33,12 +33,12 @@ Here's the full list of attributes that are already functional that you can set 
  - `CassetteNeededForFullClear`: Whether the player must collect a cassette (vanilla or alt-side) to full clear. (`true`)
  - `HeartNeededForFullClear`: Whether the player must collect a crystal heart to full clear. (`true`)
  - `ShowHeartPoem`: Whether the crystal heart should show text when collected. (`true` except in `c-side`.)
- - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "{map name}_remix_artist", "{map name}_remix", and "{map name}_remix_album" dialog keys will display those just like a vanilla B-Side. Setting the "{map name}_altsides_remix_intro" dialog key will allow your to instead write your own list of text, with as many lines as you want.
+ - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "`{map name}_remix_artist`", "`{map name}_remix`", and "`{map name}_remix_album`" dialog keys will display those just like a vanilla B-Side. Setting the "`{map name}_altsides_remix_intro`" dialog key will allow your to instead write your own list of text, with as many lines as you want.
  - `OverrideHeartTextures`: Whether the in-world heart, chapter panel heart, and heart poem textures and colours should be overriden to match `ChapterPanelHeartIcon`, `HeartColour`, and `InWorldHeartIcon`. `true` by default, but you might want to disable this if you're using e.g. Collab Utils 2's options for overriding the heart textures and colour.
+ - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. (`false`)
 
 The following attributes can be set, but are currently unimplemented:
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
- - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. (`false`)
 
 Attributes for journal information and more customisation (e.g. end screen music) are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
 
