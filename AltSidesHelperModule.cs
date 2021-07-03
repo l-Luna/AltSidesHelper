@@ -223,12 +223,9 @@ namespace AltSidesHelper {
 			string animId = null;
 
 			// our sprite ID will be "AltSidesHelper_<heart sprite path keyified>"
-			// log duplicate entries for a map 
-			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(panel.Area))?.AltSideData?.For));
-			if(parentHelperMeta != null)
-				foreach(var mode in parentHelperMeta.Sides)
-					if(mode.Map.Equals(panel.Area.SID) && mode.OverrideHeartTextures)
-						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+			AltSidesHelperMode mode = GetModeMetaForAltSide(AreaData.Get(panel.Area));
+			if(mode != null && mode.OverrideHeartTextures)
+				animId = mode.ChapterPanelHeartIcon.DialogKeyify();
 
 			if(animId != null) {
 				if(HeartSpriteBank.Has(animId)) {
@@ -257,14 +254,13 @@ namespace AltSidesHelper {
 			// log duplicate entries for a map 
 			var sid = (Engine.Scene as Level).Session.Area.SID;
 			Color? color = null;
-			AltSidesHelperMeta parentHelperMeta = GetMetaForAreaData(AreaData.Get(GetMetaForAreaData(AreaData.Get(sid))?.AltSideData?.For));
-			if(parentHelperMeta != null)
-				foreach(var mode in parentHelperMeta.Sides)
-					if(mode.Map.Equals(sid) && mode.OverrideHeartTextures) {
-						animId = mode.ChapterPanelHeartIcon.DialogKeyify();
-						if(!mode.HeartColour.Equals(""))
-							color = Calc.HexToColor(mode.HeartColour);
-					}
+			AltSidesHelperMode mode = GetModeMetaForAltSide(AreaData.Get(sid));
+			if(mode != null && mode.OverrideHeartTextures) {
+				animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+				if(!mode.HeartColour.Equals(""))
+					color = Calc.HexToColor(mode.HeartColour);
+			}
+
 			if(animId != null)
 				if(HeartSpriteBank.Has(animId)) {
 					HeartSpriteBank.CreateOn(self.Heart, animId);
@@ -386,12 +382,10 @@ namespace AltSidesHelper {
 								map = area;
 						data.Set("AreaKey", map.ToKey());
 					} else {
-						// find the vanilla mode and modify it
-						// IsAltSide is handled elsewhere
-						foreach(var vmode in (IList)modesField.GetValue(self)) {
-							DynamicData data = new DynamicData(vmode);
-							// ...
-						}
+						// find the a-side and modify it
+						DynamicData data = new DynamicData(((IList)modesField.GetValue(self))[0]);
+						data.Set("Label", Dialog.Clean(mode.Label));
+						data.Set("Icon", GFX.Gui[mode.Icon]);
 					}
 				}
 			}
@@ -583,6 +577,12 @@ namespace AltSidesHelper {
 				foreach(var mode in parentHelperMeta.Sides)
 					if(mode.Map.Equals(data.SID))
 						return mode;
+			// check for a-side overrides too
+			AltSidesHelperMeta helperMeta = GetMetaForAreaData(data);
+			if(helperMeta != null)
+				foreach(var mode in helperMeta.Sides)
+					if(mode.OverrideVanillaSideData)
+						return mode;
 			return null;
 		}
 	}
@@ -703,10 +703,10 @@ namespace AltSidesHelper {
 			set;
 		} = false;
 
-		public string VanillaSide {
+		public int VanillaSide {
 			get;
 			set;
-		} = "";
+		} = 0;
 
 		// Full-clear info
 		public bool CanFullClear {

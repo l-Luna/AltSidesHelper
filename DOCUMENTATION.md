@@ -38,8 +38,7 @@ Here's the full list of attributes that are already functional that you can set 
 
 The following attributes can be set, but are currently unimplemented:
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
- - `OverrideVanillaSideData`: If true, the vanilla sid chosen by `VanillaSide` will have its data modified, rather than creating a new side. (`false`)
- - `VanillaSide`: If `OverrideVanillaSideData` is true, the side chosen by this will have its data overriden. (Empty.)
+ - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. (`false`)
 
 Attributes for journal information and more customisation (e.g. end screen music) are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
 
