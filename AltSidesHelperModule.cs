@@ -362,7 +362,8 @@ namespace AltSidesHelper {
 				}
 
 				// apply mode settings
-				for(int i = 0; i < meta.Sides.Length && i < unlockedModes; i++) {
+				int newSides = 0;
+				for(int i = 0; i < meta.Sides.Length && newSides < unlockedModes; i++) {
 					AltSidesHelperMode mode = meta.Sides[i];
 					// only add if its unlocked
 					if(!mode.OverrideVanillaSideData) {
@@ -381,6 +382,7 @@ namespace AltSidesHelper {
 							if(area.SID.Equals(mode.Map))
 								map = area;
 						data.Set("AreaKey", map.ToKey());
+						newSides++;
 					} else {
 						// find the a-side and modify it
 						DynamicData data = new DynamicData(((IList)modesField.GetValue(self))[0]);
@@ -622,7 +624,7 @@ namespace AltSidesHelper {
 		public string Map {
 			get;
 			set;
-		}
+		} = "";
 
 		public string Preset {
 			get;

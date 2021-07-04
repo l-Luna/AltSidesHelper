@@ -35,7 +35,7 @@ Here's the full list of attributes that are already functional that you can set 
  - `ShowHeartPoem`: Whether the crystal heart should show text when collected. (`true` except in `c-side`.)
  - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "`{map name}_remix_artist`", "`{map name}_remix`", and "`{map name}_remix_album`" dialog keys will display those just like a vanilla B-Side. Setting the "`{map name}_altsides_remix_intro`" dialog key will allow your to instead write your own list of text, with as many lines as you want.
  - `OverrideHeartTextures`: Whether the in-world heart, chapter panel heart, and heart poem textures and colours should be overriden to match `ChapterPanelHeartIcon`, `HeartColour`, and `InWorldHeartIcon`. `true` by default, but you might want to disable this if you're using e.g. Collab Utils 2's options for overriding the heart textures and colour.
- - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. (`false`)
+ - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. See "Changing A-Side data". (`false`)
 
 The following attributes can be set, but are currently unimplemented:
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
@@ -57,6 +57,17 @@ Available attributes are:
  - `CopyEndScreenData`: Whether the alt-side should use the A-Side's end screen. (True by default.)
 
 If `CopyEndScreenData` is false, you'll need to use a seperate `mapname.meta.yaml` to set those.
+
+## Changing A-Side data
+You can modify A-Side data in exactly the same way as you would specify alt-side data. Instead of specifying a value for `Map`, set `OverrideVanillaSideData: true`. `IsAltSide` and `For` should not be set for this. Here's an example:
+```yaml
+Sides:
+- OverrideVanillaSideData: true
+  Preset: "a-side"
+  CanFullClear: true
+  Label: "leppa_AltSidesHelper_AltSidesHelperTest_Label"
+```
+This simply changes the label of the A-Side form "CLIMB" to "A-SIDE". Every preset can be used as normal.
 
 ## Alt-side Cassette and Alt-side Unlock Trigger
 An alt-side that has its `UnlockMode` set to `triggered` must be unlocked using either the Alt-side Unlock Trigger or an Alt-side Cassette. The Unlock Trigger unlocks it upon being entered, and the cassette unlocks it when collected.

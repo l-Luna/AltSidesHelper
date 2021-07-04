@@ -1,4 +1,8 @@
 Sides:
+- OverrideVanillaSideData: true
+  Preset: "a-side"
+  CanFullClear: true
+  Label: "leppa_AltSidesHelper_AltSidesHelperTest_Label"
 - Map: "leppa/AltSidesHelper/AltSidesHelperTest_B"
   Preset: "b-side"
   CanFullClear: true
