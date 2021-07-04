@@ -3,6 +3,7 @@ Sides:
   Preset: "a-side"
   CanFullClear: true
   Label: "leppa_AltSidesHelper_AltSidesHelperTest_Label"
+  ShowBerriesAsGolden: true
 - Map: "leppa/AltSidesHelper/AltSidesHelperTest_B"
   Preset: "b-side"
   CanFullClear: true

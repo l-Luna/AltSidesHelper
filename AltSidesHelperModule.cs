@@ -316,8 +316,11 @@ namespace AltSidesHelper {
 		}
 
 		private void FixSettingAltSideStats(On.Celeste.OuiChapterPanel.orig_UpdateStats orig, OuiChapterPanel self, bool wiggle, bool? overrideStrawberryWiggle, bool? overrideDeathWiggle, bool? overrideHeartWiggle) {
-			if(shouldResetStats)
+			if(shouldResetStats) {
 				orig(self, wiggle, overrideStrawberryWiggle, overrideDeathWiggle, overrideHeartWiggle);
+				if(GetModeMetaForAltSide(self.Data).ShowBerriesAsGolden ?? false)
+					new DynData<OuiChapterPanel>(self).Get<StrawberriesCounter>("strawberries").Golden = true;
+			}
 		}
 
 		private void FixSettingAltSideStatPositions(On.Celeste.OuiChapterPanel.orig_SetStatsPosition orig, OuiChapterPanel self, bool approach) {
@@ -641,6 +644,11 @@ namespace AltSidesHelper {
 			set;
 		} = true;
 
+		public bool? ShowBerriesAsGolden {
+			get;
+			set;
+		} = null;
+
 		// Dialog key
 		public string Label {
 			get;
@@ -694,7 +702,7 @@ namespace AltSidesHelper {
 			set;
 		} = null;
 
-		public bool? ShowBSideRemixIntro{
+		public bool? ShowBSideRemixIntro {
 			get;
 			set;
 		} = null;
@@ -704,11 +712,6 @@ namespace AltSidesHelper {
 			get;
 			set;
 		} = false;
-
-		public int VanillaSide {
-			get;
-			set;
-		} = 0;
 
 		// Full-clear info
 		public bool CanFullClear {
