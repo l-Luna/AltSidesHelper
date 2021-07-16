@@ -25,6 +25,7 @@ namespace AltSidesHelper {
 		private static IDetour hook_OuiChapterPanel_get_option;
 		private static IDetour hook_OuiChapterSelect_get_area;
 		private static IDetour hook_LevelSetStats_get_MaxArea;
+		private static IDetour hook_Session_get_FullClear;
 
 		private static IDetour mod_OuiFileSelectSlot_orig_Render;
 
@@ -80,6 +81,11 @@ namespace AltSidesHelper {
 				typeof(LevelSetStats).GetProperty("MaxArea", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
 				typeof(AltSidesHelperModule).GetMethod("OnLevelSetStatsGetMaxArea", BindingFlags.NonPublic | BindingFlags.Static)
 			);
+			hook_LevelSetStats_get_MaxArea = new Hook(
+				typeof(Session).GetProperty("FullClear", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
+				typeof(AltSidesHelperModule).GetMethod("OnSessionGetFullClear", BindingFlags.NonPublic | BindingFlags.Static)
+			);
+
 			mod_OuiFileSelectSlot_orig_Render = new ILHook(
 				typeof(OuiFileSelectSlot).GetMethod("orig_Render", BindingFlags.Public | BindingFlags.Instance),
 				ModFileSelectSlotRender
@@ -190,8 +196,10 @@ namespace AltSidesHelper {
 			var meta = GetModeMetaForAltSide(data);
 			if(meta != null) {
 				Logger.Log("AltSidesHelper", $"Replacing end screen title for \"{data.SID}\".");
-				if(meta.CanFullClear && (!meta.CassetteNeededForFullClear || self.Session.Cassette) && (!meta.HeartNeededForFullClear || self.Session.HeartGem) && (self.Session.Strawberries.Count >= self.Session.MapData.DetectedStrawberries) && !meta.EndScreenClearTitle.Equals(""))
+				if(self.Session.FullClear) {
 					return Dialog.Clean(meta.EndScreenClearTitle);
+				}
+
 				if(!meta.EndScreenTitle.Equals(""))
 					return Dialog.Clean(meta.EndScreenTitle);
 			}
@@ -573,6 +581,15 @@ namespace AltSidesHelper {
 				prevArea = AreaData.Areas.IndexOf(AreaData.Get(meta.AltSideData.For));
 			}
 			return prevArea;
+		}
+
+		private delegate bool orig_Session_get_FullClear(Session self);
+		private static bool OnSessionGetFullClear(orig_Session_get_FullClear orig, Session self) {
+			var prev = orig(self);
+			var meta = GetModeMetaForAltSide(AreaData.Get(self));
+			if(meta != null && meta.CanFullClear && (!meta.CassetteNeededForFullClear || self.Cassette) && (!meta.HeartNeededForFullClear || self.HeartGem) && (self.Strawberries.Count >= self.MapData.DetectedStrawberries)) 
+				return true;
+			return prev;
 		}
 
 		private void PostAreaLoad(On.Celeste.AreaData.orig_Load orig) {
