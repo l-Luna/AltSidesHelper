@@ -37,11 +37,9 @@ Here's the full list of attributes that are already functional that you can set 
  - `ShowBSideRemixIntro`: Whether the music remix title, artist, and album should be displayed when entering the chapter. Setting the "`{map name}_remix_artist`", "`{map name}_remix`", and "`{map name}_remix_album`" dialog keys will display those just like a vanilla B-Side. Setting the "`{map name}_altsides_remix_intro`" dialog key will allow your to instead write your own list of text, with as many lines as you want.
  - `OverrideHeartTextures`: Whether the in-world heart, chapter panel heart, and heart poem textures and colours should be overriden to match `ChapterPanelHeartIcon`, `HeartColour`, and `InWorldHeartIcon`. `true` by default, but you might want to disable this if you're using e.g. Collab Utils 2's options for overriding the heart textures and colour.
  - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. See "Changing A-Side data". (`false`)
+ - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal, in the Journal atlas. Also used for the file select screen. (`heartgem0`, `heartgem1`, `heartgem2`, `leppa/AltSidesHelper/heartgemD`)
 
-The following attributes can be set, but are currently unimplemented:
- - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal. (`heartgem0`, `heartgem1`, `heartgem2`, `heartgem0`)
-
-Attributes for journal information and more customisation (e.g. end screen music) are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
+Attributes for more customisation (e.g. end screen music, columns in journal) are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
 
 ## Alt-side ASH meta
 

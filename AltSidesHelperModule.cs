@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using Monocle;
 using Microsoft.Xna.Framework;
 using System.Linq;
+using MonoMod.Cil;
+using Mono.Cecil.Cil;
 
 namespace AltSidesHelper {
 	public class AltSidesHelperModule : EverestModule {
@@ -23,6 +25,8 @@ namespace AltSidesHelper {
 		private static IDetour hook_OuiChapterPanel_get_option;
 		private static IDetour hook_OuiChapterSelect_get_area;
 		private static IDetour hook_LevelSetStats_get_MaxArea;
+
+		private static IDetour mod_OuiFileSelectSlot_orig_Render;
 
 		// variables used for returning from alt-sides to the chapter panel
 		private int returningAltSide = -1;
@@ -58,8 +62,8 @@ namespace AltSidesHelper {
 			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle += SetAltSideEndScreenTitle;
 			On.Celeste.LevelEnter.Routine += AddAltSideRemixTitle;
 
-			//IL.Celeste.OuiJournalProgress.ctor += OnJournalProgressPageConstruct;
-
+			IL.Celeste.OuiJournalProgress.ctor += ModJournalProgressPageConstruct;
+			
 			hook_OuiChapterPanel_set_option = new Hook(
 				typeof(OuiChapterPanel).GetProperty("option", BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true),
 				typeof(AltSidesHelperModule).GetMethod("OnChapterPanelChangeOption", BindingFlags.NonPublic | BindingFlags.Static)
@@ -75,6 +79,10 @@ namespace AltSidesHelper {
 			hook_LevelSetStats_get_MaxArea = new Hook(
 				typeof(LevelSetStats).GetProperty("MaxArea", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
 				typeof(AltSidesHelperModule).GetMethod("OnLevelSetStatsGetMaxArea", BindingFlags.NonPublic | BindingFlags.Static)
+			);
+			mod_OuiFileSelectSlot_orig_Render = new ILHook(
+				typeof(OuiFileSelectSlot).GetMethod("orig_Render", BindingFlags.Public | BindingFlags.Instance),
+				ModFileSelectSlotRender
 			);
 		}
 
@@ -97,12 +105,84 @@ namespace AltSidesHelper {
 			On.Celeste.AreaComplete.GetCustomCompleteScreenTitle -= SetAltSideEndScreenTitle;
 			On.Celeste.LevelEnter.Routine -= AddAltSideRemixTitle;
 
-			//IL.Celeste.OuiJournalProgress.ctor -= OnJournalProgressPageConstruct;
+			IL.Celeste.OuiJournalProgress.ctor -= ModJournalProgressPageConstruct;
 
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
 			hook_LevelSetStats_get_MaxArea.Dispose();
+			mod_OuiFileSelectSlot_orig_Render.Dispose();
+		}
+
+		private void ModFileSelectSlotRender(ILContext il) {
+			ILCursor cursor = new ILCursor(il);
+			if(cursor.TryGotoNext(MoveType.After,
+								instr => instr.Match(OpCodes.Box),
+								instr => instr.MatchCall<string>("Concat"),
+								instr => instr.MatchCallvirt<Atlas>("get_Item"))) {
+				Logger.Log("AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
+				Logger.Log("AltSidesHelper", $"h: {typeof(OuiFileSelectSlot).GetField("SaveData")}");
+				// emit:
+				cursor.Emit(OpCodes.Ldarg_0);
+				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
+				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[16]);
+				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
+					Logger.Log("AltSidesHelper", $"orig: {orig}, save: {save}, index: {index}");
+					var levelset = save.LevelSet;
+					AreaData data = null; int i = 0;
+					foreach(var item in AreaData.Areas) {
+						if(item.GetLevelSet().Equals(levelset)) {
+							if(i == index) {
+								data = item;
+								break;
+							}
+							i++;
+						}
+					}
+					if(data != null) {
+						var meta = GetModeMetaForAltSide(data);
+						if(meta != null && meta.OverrideHeartTextures) {
+							Logger.Log("AltSidesHelper", $"Changing file select heart texture for \"{data.SID}\".");
+							// use *our* gem
+							return MTN.Journal[meta.JournalHeartIcon];
+						}
+					}
+					return orig;
+				});
+				// ldfld class Celeste.SaveData Celeste.OuiFileSelectSlot::SaveData
+				// ldloc.s index2
+				// delegate <MTexture, SaveData, int, MTexture>
+				//  - get Level Set
+				//  - find the AreaData
+				//  - check if it has alt-sides meta
+				//  - check if it's complete
+				//  - if so, replace with my texture
+			}
+		}
+
+		private void ModJournalProgressPageConstruct(ILContext il) {
+			ILCursor cursor = new ILCursor(il);
+			if(cursor.TryGotoNext(MoveType.After,
+								instr => instr.Match(OpCodes.Box),
+								instr => instr.MatchCall<string>("Concat"))) {
+				// now do that again :P
+				if(cursor.TryGotoNext(MoveType.After,
+								instr => instr.Match(OpCodes.Box),
+								instr => instr.MatchCall<string>("Concat"))) {
+					Logger.Log("AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor.");
+					cursor.Emit(OpCodes.Ldloc_2); // data
+					cursor.EmitDelegate<Func<string, AreaData, string>>((orig, data) => {
+						Logger.Log("AltSidesHelper", $"hhh, data: {data.SID}, orig: {orig}");
+						var meta = GetModeMetaForAltSide(data);
+						if(meta != null && meta.OverrideHeartTextures) {
+							Logger.Log("AltSidesHelper", $"Changing journal heart colour for \"{data.SID}\".");
+							// use *our* gem
+							return meta.JournalHeartIcon;
+						}
+						return orig;
+					});
+				}
+			}
 		}
 
 		private int SortAltSidesLast(On.Celeste.AreaData.orig_AreaComparison orig, AreaData a, AreaData b) {
@@ -115,8 +195,10 @@ namespace AltSidesHelper {
 
 		private string SetAltSideEndScreenTitle(On.Celeste.AreaComplete.orig_GetCustomCompleteScreenTitle orig, AreaComplete self) {
 			var ret = orig(self);
-			var meta = GetModeMetaForAltSide(AreaData.Get(self.Session.Area));
+			var data = AreaData.Get(self.Session.Area);
+			var meta = GetModeMetaForAltSide(data);
 			if(meta != null) {
+				Logger.Log("AltSidesHelper", $"Replacing end screen title for \"{data.SID}\".");
 				if(meta.CanFullClear && (!meta.CassetteNeededForFullClear || self.Session.Cassette) && (!meta.HeartNeededForFullClear || self.Session.HeartGem) && (self.Session.Strawberries.Count >= self.Session.MapData.DetectedStrawberries) && !meta.EndScreenClearTitle.Equals(""))
 					return Dialog.Clean(meta.EndScreenClearTitle);
 				if(!meta.EndScreenTitle.Equals(""))
@@ -128,43 +210,48 @@ namespace AltSidesHelper {
 		private void SetCrystalHeartSprite(On.Celeste.HeartGem.orig_Awake orig, HeartGem self, Scene scene) {
 			orig(self, scene);
 			if(!self.IsFake) {
-				var meta = GetModeMetaForAltSide(AreaData.Get((scene as Level).Session.Area));
-				if(meta != null && meta.OverrideHeartTextures) {
-					var selfdata = new DynData<HeartGem>(self);
-					if(!self.IsGhost) {
-						var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
-						sprite.CenterOrigin();
-						sprite.AddLoop("idle", "", 0, new int[] { 0 });
-						sprite.AddLoop("spin", "", 0.1f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
-						sprite.AddLoop("fastspin", "", 0.1f);
-						sprite.CenterOrigin();
-						sprite.OnLoop = delegate (string anim) {
-							if(self.Visible && anim == "spin" && (bool)selfdata["autoPulse"]) {
-								Audio.Play("event:/game/general/crystalheart_pulse", self.Position);
-								self.ScaleWiggler.Start();
-								(scene as Level).Displacement.AddBurst(self.Position, 0.35f, 8f, 48f, 0.25f);
-							}
+				var data = AreaData.Get((scene as Level).Session.Area);
+				var meta = GetModeMetaForAltSide(data);
+				if(meta != null) {
+					Logger.Log("AltSidesHelper", $"In-world heart customisation: found metadata for \"{data.SID}\".");
+					if(meta.OverrideHeartTextures) {
+						Logger.Log("AltSidesHelper", $"Replacing crystal heart texture for \"{data.SID}\".");
+						var selfdata = new DynData<HeartGem>(self);
+						if(!self.IsGhost) {
+							var sprite = new Sprite(GFX.Game, meta.InWorldHeartIcon);
+							sprite.CenterOrigin();
+							sprite.AddLoop("idle", "", 0, new int[] { 0 });
+							sprite.AddLoop("spin", "", 0.1f, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
+							sprite.AddLoop("fastspin", "", 0.1f);
+							sprite.CenterOrigin();
+							sprite.OnLoop = delegate (string anim) {
+								if(self.Visible && anim == "spin" && (bool)selfdata["autoPulse"]) {
+									Audio.Play("event:/game/general/crystalheart_pulse", self.Position);
+									self.ScaleWiggler.Start();
+									(scene as Level).Displacement.AddBurst(self.Position, 0.35f, 8f, 48f, 0.25f);
+								}
+							};
+							sprite.Play("spin");
+							self.ScaleWiggler.RemoveSelf();
+							self.ScaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f) {
+								sprite.Scale = Vector2.One * (1f + f * 0.25f);
+							});
+							self.Add(self.ScaleWiggler);
+							((Component)selfdata["sprite"]).RemoveSelf();
+							selfdata["sprite"] = sprite;
+							self.Add(sprite);
+						}
+
+						var colour = Calc.HexToColor(meta.HeartColour);
+						selfdata["shineParticle"] = new ParticleType(HeartGem.P_BlueShine) {
+							Color = colour
 						};
-						sprite.Play("spin");
-						self.ScaleWiggler.RemoveSelf();
-						self.ScaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f) {
-							sprite.Scale = Vector2.One * (1f + f * 0.25f);
-						});
-						self.Add(self.ScaleWiggler);
-						((Component)selfdata["sprite"]).RemoveSelf();
-						selfdata["sprite"] = sprite;
-						self.Add(sprite);
+
+						selfdata.Get<VertexLight>("light").RemoveSelf();
+						var newLight = new VertexLight(Color.Lerp(colour, Color.White, 0.5f), 1f, 32, 64);
+						self.Add(newLight);
+						selfdata["light"] = newLight;
 					}
-
-					var colour = Calc.HexToColor(meta.HeartColour);
-					selfdata["shineParticle"] = new ParticleType(HeartGem.P_BlueShine) {
-						Color = colour
-					};
-
-					selfdata.Get<VertexLight>("light").RemoveSelf();
-					var newLight = new VertexLight(Color.Lerp(colour, Color.White, 0.5f), 1f, 32, 64);
-					self.Add(newLight);
-					selfdata["light"] = newLight;
 				}
 			}
 		}
@@ -173,8 +260,10 @@ namespace AltSidesHelper {
 			orig(self, mode);
 			if(self.Entity is OuiChapterPanel panel) {
 				var meta = GetModeMetaForAltSide(panel.Data);
-				if(meta != null)
+				if(meta != null) {
+					Logger.Log("AltSidesHelper", $"Replacing deaths icon for \"{panel.Data.SID}\".");
 					new DynData<DeathsCounter>(self).Set("icon", GFX.Gui[meta.DeathsIcon]);
+				}
 			}
 		}
 
@@ -215,6 +304,7 @@ namespace AltSidesHelper {
 				panelData["heart"] = new HeartGemDisplay(0, false);
 				panel.Add(panelData["heart"] as HeartGemDisplay);
 				panelData["AsHeartDirty"] = false;
+				Logger.Log("AltSidesHelper", $"Resetting dirty crystal heart for {panel.Data.SID}.");
 			}
 		}
 
@@ -223,12 +313,19 @@ namespace AltSidesHelper {
 			string animId = null;
 
 			// our sprite ID will be "AltSidesHelper_<heart sprite path keyified>"
-			AltSidesHelperMode mode = GetModeMetaForAltSide(AreaData.Get(panel.Area));
-			if(mode != null && mode.OverrideHeartTextures)
-				animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+			var data = AreaData.Get(panel.Area);
+			AltSidesHelperMode mode = GetModeMetaForAltSide(data);
+			if(mode != null) {
+				Logger.Log("AltSidesHelper", $"Found meta for \"{data.SID}\" when customising UI heart.");
+				if(mode.OverrideHeartTextures) {
+					animId = mode.ChapterPanelHeartIcon.DialogKeyify();
+					Logger.Log("AltSidesHelper", $"Will change UI heart sprite for \"{data.SID}\".");
+				}
+			}
 
 			if(animId != null) {
 				if(HeartSpriteBank.Has(animId)) {
+					Logger.Log("AltSidesHelper", $"Replacing UI heart sprite for \"{data.SID}\".");
 					Sprite heartSprite = HeartSpriteBank.Create(animId);
 					var selfdata = new DynData<OuiChapterPanel>(panel);
 					var oldheart = selfdata.Get<HeartGemDisplay>("heart");
@@ -236,14 +333,18 @@ namespace AltSidesHelper {
 					oldheart.Sprites[0] = heartSprite;
 					heartSprite.CenterOrigin();
 					heartSprite.Play("spin");
-					heartSprite.Visible = prevVisible;
+					heartSprite.Visible = prevVisible || oldheart.Sprites[1].Visible || oldheart.Sprites[2].Visible;
 					selfdata["AsHeartDirty"] = true;
 				}
 			}
 		}
 
 		private void SetPoemColour(On.Celeste.Poem.orig_ctor orig, Poem self, string text, int heartIndex, float heartAlpha) {
-			var m = GetModeMetaForAltSide(AreaData.Get((Engine.Scene as Level).Session.Area));
+			var data = AreaData.Get((Engine.Scene as Level).Session.Area);
+			var m = GetModeMetaForAltSide(data);
+			if(data != null) {
+				Logger.Log("AltSidesHelper", $"Customising poem UI for \"{data.SID}\".");
+			}
 			if (!(m?.ShowHeartPoem) ?? false)
 				text = null;
 			orig(self, text, heartIndex, heartAlpha);
@@ -257,8 +358,9 @@ namespace AltSidesHelper {
 			AltSidesHelperMode mode = GetModeMetaForAltSide(AreaData.Get(sid));
 			if(mode != null && mode.OverrideHeartTextures) {
 				animId = mode.ChapterPanelHeartIcon.DialogKeyify();
-				if(!mode.HeartColour.Equals(""))
+				if(!mode.HeartColour.Equals("")) {
 					color = Calc.HexToColor(mode.HeartColour);
+				}
 			}
 
 			if(animId != null)
@@ -266,9 +368,12 @@ namespace AltSidesHelper {
 					HeartSpriteBank.CreateOn(self.Heart, animId);
 					self.Heart.Play("spin");
 					self.Heart.CenterOrigin();
+					Logger.Log("AltSidesHelper", $"Changed poem heart sprite for \"{data.SID}\".");
 				}
-			if(color != null)
+			if(color != null) {
 				new DynData<Poem>(self)["Color"] = color;
+				Logger.Log("AltSidesHelper", $"Changed poem colour for \"{data.SID}\".");
+			}
 		}
 
 		private bool FixReturnFromAltSide(On.Celeste.OuiChapterPanel.orig_IsStart orig, OuiChapterPanel self, Overworld overworld, Overworld.StartMode start) {
@@ -332,26 +437,34 @@ namespace AltSidesHelper {
 			// check map meta for extra sides or side overrides
 			AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
 			if(meta?.Sides != null) {
+				Logger.Log("AltSidesHelper", $"Customising panel UI for \"{self.Data.SID}\".");
+				bool[] unlockedSides = new bool[meta.Sides.Count()];
 				int siblings = ((IList)modesField.GetValue(self)).Count;
 				int oldModes = siblings;
 				bool bsidesunlocked = !self.Data.Interlude_Safe && self.Data.HasMode(AreaMode.BSide) && (self.DisplayedStats.Cassette || ((SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) && self.DisplayedStats.Cassette == self.RealStats.Cassette));
 				bool csidesunlocked = !self.Data.Interlude_Safe && self.Data.HasMode(AreaMode.CSide) && SaveData.Instance.UnlockedModes >= 3 && Celeste.Celeste.PlayMode != Celeste.Celeste.PlayModes.Event;
 				// find the new total number of unlocked modes
-				int unlockedModes = 0;
+				int unlockedModeCount = 0;
 				// if this map has a C-Side, this is whether they have C-sides unlocked. else, if this map has a B-Sides, its whether they have a cassette. else, true.
 				bool prevUnlocked = self.Data.HasMode(AreaMode.CSide) ? csidesunlocked : self.Data.HasMode(AreaMode.BSide) ? bsidesunlocked : true;
 				// if this map has a C-Side, this is whether they've beaten it; else, if this map has a B-Side, its whether they've completed it; else, its whether they've completed the level.
 				bool prevCompleted = self.Data.HasMode(AreaMode.CSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.CSide].Completed : self.Data.HasMode(AreaMode.BSide) ? SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.BSide].Completed : SaveData.Instance.GetAreaStatsFor(self.Data.ToKey()).Modes[(int)AreaMode.Normal].Completed;
-				foreach(var mode in meta.Sides)
-					if(!mode.OverrideVanillaSideData){
+				for(int i1 = 0; i1 < meta.Sides.Length; i1++) {
+					AltSidesHelperMode mode = meta.Sides[i1];
+					if(!mode.OverrideVanillaSideData) {
 						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || (mode.UnlockMode.Equals("c_sides_unlocked") && csidesunlocked) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
-							unlockedModes++;
+							unlockedModeCount++;
 							siblings++;
 							prevUnlocked = true;
 							prevCompleted = SaveData.Instance.GetAreaStatsFor(AreaData.Get(mode.Map).ToKey()).Modes[(int)AreaMode.Normal].Completed;
-						} else
+							unlockedSides[i1] = true;
+						} else {
 							prevUnlocked = prevCompleted = false;
-					}
+							unlockedSides[i1] = false;
+						}
+					} else
+						unlockedSides[i1] = true;
+				}
 				// adjust the original options to fit, and attach the map path & mode to the original options
 				int origMode = 0;
 				foreach(var vmode in (IList)modesField.GetValue(self)) {
@@ -366,31 +479,35 @@ namespace AltSidesHelper {
 
 				// apply mode settings
 				int newSides = 0;
-				for(int i = 0; i < meta.Sides.Length && newSides < unlockedModes; i++) {
+				for(int i = 0; i < meta.Sides.Length /*&& newSides < unlockedModes*/; i++) {
 					AltSidesHelperMode mode = meta.Sides[i];
 					// only add if its unlocked
-					if(!mode.OverrideVanillaSideData) {
-						object newOptn;
-						((IList)modesField.GetValue(self)).Add(
-							newOptn = DynamicData.New(t_OuiChapterPanelOption)(new {
-								Label = Dialog.Clean(mode.Label),
-								Icon = GFX.Gui[mode.Icon],
-								ID = "AltSidesHelperMode_" + i.ToString(),
-								Siblings = siblings > 5 ? siblings : 0
-							})
-						);
-						DynamicData data = new DynamicData(newOptn);
-						AreaData map = null;
-						foreach(var area in AreaData.Areas)
-							if(area.SID.Equals(mode.Map))
-								map = area;
-						data.Set("AreaKey", map.ToKey());
-						newSides++;
-					} else {
-						// find the a-side and modify it
-						DynamicData data = new DynamicData(((IList)modesField.GetValue(self))[0]);
-						data.Set("Label", Dialog.Clean(mode.Label));
-						data.Set("Icon", GFX.Gui[mode.Icon]);
+					if(unlockedSides[i]) {
+						if(!mode.OverrideVanillaSideData) {
+							object newOptn;
+							((IList)modesField.GetValue(self)).Add(
+								newOptn = DynamicData.New(t_OuiChapterPanelOption)(new {
+									Label = Dialog.Clean(mode.Label),
+									Icon = GFX.Gui[mode.Icon],
+									ID = "AltSidesHelperMode_" + i.ToString(),
+									Siblings = siblings > 5 ? siblings : 0
+								})
+							);
+							DynamicData data = new DynamicData(newOptn);
+							AreaData map = null;
+							foreach(var area in AreaData.Areas)
+								if(area.SID.Equals(mode.Map))
+									map = area;
+							data.Set("AreaKey", map.ToKey());
+							newSides++;
+							Logger.Log("AltSidesHelper", $"Added new side for \"{self.Data.SID}\".");
+						} else {
+							// find the a-side and modify it
+							DynamicData data = new DynamicData(((IList)modesField.GetValue(self))[0]);
+							data.Set("Label", Dialog.Clean(mode.Label));
+							data.Set("Icon", GFX.Gui[mode.Icon]);
+							Logger.Log("AltSidesHelper", $"Modifying A-Side data for \"{self.Data.SID}\".");
+						}
 					}
 				}
 			}
@@ -479,6 +596,9 @@ namespace AltSidesHelper {
 						mode.ApplyPreset();
 						altsides++;
 						heartTextures.Add(mode.ChapterPanelHeartIcon);
+						if(mode.OverrideVanillaSideData) {
+							Logger.Log("AltSidesHelper", $"Will customise A-Side for \"{map.SID}\".");
+						}
 					}
 					// Attach the meta to the AreaData w/ DynData
 					DynData<AreaData> areaDynData = new DynData<AreaData>(map);
@@ -782,7 +902,7 @@ namespace AltSidesHelper {
 			DeathsIcon = "collectables/skullGold",
 			ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside",
 			InWorldHeartIcon = "collectables/heartGem/3/",
-			JournalHeartIcon = "heartgem2",
+			JournalHeartIcon = "leppa/AltSidesHelper/heartgemD",
 			HeartColour = "ffffff",
 			EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside",
