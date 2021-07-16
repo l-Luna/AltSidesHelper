@@ -84,6 +84,8 @@ namespace AltSidesHelper {
 				typeof(OuiFileSelectSlot).GetMethod("orig_Render", BindingFlags.Public | BindingFlags.Instance),
 				ModFileSelectSlotRender
 			);
+
+			Logger.SetLogLevel("AltSidesHelper", LogLevel.Info);
 		}
 
 		public override void LoadContent(bool firstLoad) {
@@ -120,9 +122,7 @@ namespace AltSidesHelper {
 								instr => instr.Match(OpCodes.Box),
 								instr => instr.MatchCall<string>("Concat"),
 								instr => instr.MatchCallvirt<Atlas>("get_Item"))) {
-				Logger.Log("AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
-				Logger.Log("AltSidesHelper", $"h: {typeof(OuiFileSelectSlot).GetField("SaveData")}");
-				// emit:
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
 				cursor.Emit(OpCodes.Ldarg_0);
 				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
 				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[16]);
@@ -149,14 +149,6 @@ namespace AltSidesHelper {
 					}
 					return orig;
 				});
-				// ldfld class Celeste.SaveData Celeste.OuiFileSelectSlot::SaveData
-				// ldloc.s index2
-				// delegate <MTexture, SaveData, int, MTexture>
-				//  - get Level Set
-				//  - find the AreaData
-				//  - check if it has alt-sides meta
-				//  - check if it's complete
-				//  - if so, replace with my texture
 			}
 		}
 
@@ -169,10 +161,9 @@ namespace AltSidesHelper {
 				if(cursor.TryGotoNext(MoveType.After,
 								instr => instr.Match(OpCodes.Box),
 								instr => instr.MatchCall<string>("Concat"))) {
-					Logger.Log("AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor.");
+					Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor.");
 					cursor.Emit(OpCodes.Ldloc_2); // data
 					cursor.EmitDelegate<Func<string, AreaData, string>>((orig, data) => {
-						Logger.Log("AltSidesHelper", $"hhh, data: {data.SID}, orig: {orig}");
 						var meta = GetModeMetaForAltSide(data);
 						if(meta != null && meta.OverrideHeartTextures) {
 							Logger.Log("AltSidesHelper", $"Changing journal heart colour for \"{data.SID}\".");
@@ -597,7 +588,7 @@ namespace AltSidesHelper {
 						altsides++;
 						heartTextures.Add(mode.ChapterPanelHeartIcon);
 						if(mode.OverrideVanillaSideData) {
-							Logger.Log("AltSidesHelper", $"Will customise A-Side for \"{map.SID}\".");
+							Logger.Log(LogLevel.Info, "AltSidesHelper", $"Will customise A-Side for \"{map.SID}\".");
 						}
 					}
 					// Attach the meta to the AreaData w/ DynData
@@ -622,7 +613,7 @@ namespace AltSidesHelper {
 				}
 			}
 
-			Logger.Log("AltSidesHelper", $"Loaded {altsides} alt-sides!");
+			Logger.Log(LogLevel.Info, "AltSidesHelper", $"Loaded {altsides} alt-sides!");
 
 			SpriteBank crystalHeartSwaps = new SpriteBank(GFX.Gui, "Graphics/AltSidesHelper/Empty.xml");
 
@@ -656,7 +647,7 @@ namespace AltSidesHelper {
 			}
 
 			HeartSpriteBank = crystalHeartSwaps;
-			Logger.Log("AltSidesHelper", $"Loaded {hearts} crystal heart UI textures.");
+			Logger.Log(LogLevel.Info, "AltSidesHelper", $"Loaded {hearts} crystal heart UI textures.");
 		}
 
 		private void HideAltSides(On.Celeste.OuiChapterSelect.orig_Added orig, OuiChapterSelect self, Scene scene) {
