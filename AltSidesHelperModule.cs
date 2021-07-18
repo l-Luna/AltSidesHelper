@@ -18,7 +18,12 @@ namespace AltSidesHelper {
 		public static AltSidesHelperModule Instance;
 
 		public override Type SaveDataType => typeof(AltSidesHelperSaveData);
+
+		// save data - contains unlocked alt-sides by cassettes or triggers
 		public static AltSidesHelperSaveData AltSidesSaveData => (AltSidesHelperSaveData)Instance._SaveData;
+
+		// alt-sides metadata
+		public static Dictionary<AreaData, AltSidesHelperMeta> AltSidesMetadata = new Dictionary<AreaData, AltSidesHelperMeta>();
 
 		// hooks
 		private static IDetour hook_OuiChapterPanel_set_option;
@@ -120,6 +125,8 @@ namespace AltSidesHelper {
 			hook_OuiChapterSelect_get_area.Dispose();
 			hook_LevelSetStats_get_MaxArea.Dispose();
 			mod_OuiFileSelectSlot_orig_Render.Dispose();
+
+			AltSidesMetadata.Clear();
 		}
 
 		private void ModFileSelectSlotRender(ILContext il) {
@@ -434,7 +441,8 @@ namespace AltSidesHelper {
 
 		private static void AddExtraModes(OuiChapterPanel self) {
 			// check map meta for extra sides or side overrides
-			AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
+			//AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
+			AltSidesHelperMeta meta = GetMetaForAreaData(self.Data);//AltSidesMetadata[self.Data];
 			if(meta?.Sides != null) {
 				Logger.Log("AltSidesHelper", $"Customising panel UI for \"{self.Data.SID}\".");
 				bool[] unlockedSides = new bool[meta.Sides.Count()];
@@ -609,8 +617,9 @@ namespace AltSidesHelper {
 						}
 					}
 					// Attach the meta to the AreaData w/ DynData
-					DynData<AreaData> areaDynData = new DynData<AreaData>(map);
-					areaDynData["AltSidesHelperMeta"] = meta;
+					//DynData<AreaData> areaDynData = new DynData<AreaData>(map);
+					//areaDynData["AltSidesHelperMeta"] = meta;
+					AltSidesMetadata[map] = meta;
 					if(meta.AltSideData.IsAltSide) {
 						var aside = AreaData.Get(meta.AltSideData.For);
 						if(meta.AltSideData.CopyEndScreenData)
@@ -699,7 +708,9 @@ namespace AltSidesHelper {
 		public static AltSidesHelperMeta GetMetaForAreaData(AreaData data){
 			if(data == null)
 				return null;
-			return new DynData<AreaData>(data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
+			if(!AltSidesMetadata.ContainsKey(data))
+				return null;
+			return AltSidesMetadata[data];//new DynData<AreaData>(data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
 		}
 
 		public static AltSidesHelperMode GetModeMetaForAltSide(AreaData data) {
