@@ -4,7 +4,6 @@ Sides:
   CanFullClear: true
   Label: "leppa_AltSidesHelper_AltSidesHelperTest_Label"
   ShowBerriesAsGolden: true
-  JournalHeartIcon: "leppa/AltSidesHelper/heartgemD"
   CassetteNeededForFullClear: false
 - Map: "leppa/AltSidesHelper/AltSidesHelperTest_B"
   Preset: "b-side"

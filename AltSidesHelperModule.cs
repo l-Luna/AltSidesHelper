@@ -29,7 +29,6 @@ namespace AltSidesHelper {
 		private static IDetour hook_OuiChapterPanel_set_option;
 		private static IDetour hook_OuiChapterPanel_get_option;
 		private static IDetour hook_OuiChapterSelect_get_area;
-		private static IDetour hook_LevelSetStats_get_MaxArea;
 		private static IDetour hook_Session_get_FullClear;
 
 		private static IDetour mod_OuiFileSelectSlot_orig_Render;
@@ -82,11 +81,7 @@ namespace AltSidesHelper {
 				typeof(OuiChapterSelect).GetProperty("area", BindingFlags.NonPublic | BindingFlags.Instance).GetGetMethod(true),
 				typeof(AltSidesHelperModule).GetMethod("OnChapterSelectGetArea", BindingFlags.NonPublic | BindingFlags.Static)
 			);
-			hook_LevelSetStats_get_MaxArea = new Hook(
-				typeof(LevelSetStats).GetProperty("MaxArea", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
-				typeof(AltSidesHelperModule).GetMethod("OnLevelSetStatsGetMaxArea", BindingFlags.NonPublic | BindingFlags.Static)
-			);
-			hook_LevelSetStats_get_MaxArea = new Hook(
+			hook_Session_get_FullClear = new Hook(
 				typeof(Session).GetProperty("FullClear", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
 				typeof(AltSidesHelperModule).GetMethod("OnSessionGetFullClear", BindingFlags.NonPublic | BindingFlags.Static)
 			);
@@ -123,7 +118,7 @@ namespace AltSidesHelper {
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
-			hook_LevelSetStats_get_MaxArea.Dispose();
+			hook_Session_get_FullClear.Dispose();
 			mod_OuiFileSelectSlot_orig_Render.Dispose();
 
 			AltSidesMetadata.Clear();
@@ -138,9 +133,8 @@ namespace AltSidesHelper {
 				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
 				cursor.Emit(OpCodes.Ldarg_0);
 				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
-				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[16]);
+				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[11]);
 				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
-					Logger.Log("AltSidesHelper", $"orig: {orig}, save: {save}, index: {index}");
 					var levelset = save.LevelSet;
 					AreaData data = null; int i = 0;
 					foreach(var item in AreaData.Areas) {
@@ -190,10 +184,12 @@ namespace AltSidesHelper {
 		}
 
 		private int SortAltSidesLast(On.Celeste.AreaData.orig_AreaComparison orig, AreaData a, AreaData b) {
-			if(!string.IsNullOrEmpty(GetMetaForAreaData(a)?.AltSideData?.For) && string.IsNullOrEmpty(GetMetaForAreaData(b)?.AltSideData?.For))
-				return 1;
-			if(string.IsNullOrEmpty(GetMetaForAreaData(a)?.AltSideData?.For) && !string.IsNullOrEmpty(GetMetaForAreaData(b)?.AltSideData?.For))
-				return -1;
+			if(string.Equals(a.LevelSet, b.LevelSet)) {
+				if(!(GetMetaForAreaData(a)?.AltSideData?.IsAltSide ?? false) && (GetMetaForAreaData(b)?.AltSideData?.IsAltSide ?? false))
+					return -1;
+				if((GetMetaForAreaData(a)?.AltSideData?.IsAltSide ?? false) && !(GetMetaForAreaData(b)?.AltSideData?.IsAltSide ?? false))
+					return 1;
+			}
 			return orig(a, b);
 		}
 
@@ -555,6 +551,7 @@ namespace AltSidesHelper {
 
 		private static void UpdateDataForTrueMode(OuiChapterPanel self, int option) {
 			try {
+				Logger.Log("AltSidesHelper", $"Returning to correct side {option} (from \"{self.Area.GetSID()}\")");
 				self.Area = new DynamicData(((IList)modesField.GetValue(self))[option]).Get<AreaKey>("AreaKey");
 				self.RealStats = SaveData.Instance.Areas_Safe[self.Area.ID];
 				self.DisplayedStats = self.RealStats;
@@ -572,13 +569,6 @@ namespace AltSidesHelper {
 					return orig(self);
 				}
 			} else return orig(self);
-		}
-
-		private delegate int orig_LevelSetStats_get_MaxArea(LevelSetStats self);
-		private static int OnLevelSetStatsGetMaxArea(orig_LevelSetStats_get_MaxArea orig, LevelSetStats self) {
-			int prevArea = orig(self);
-			// take off any alt-sides
-			return prevArea - AreaData.Areas.Count((AreaData area) => area.GetLevelSet() == self.Name && !string.IsNullOrEmpty(GetMetaForAreaData(area)?.AltSideData.For));
 		}
 
 		private delegate int orig_OuiChapterSelect_get_area(OuiChapterSelect self);
@@ -616,9 +606,7 @@ namespace AltSidesHelper {
 							Logger.Log(LogLevel.Info, "AltSidesHelper", $"Will customise A-Side for \"{map.SID}\".");
 						}
 					}
-					// Attach the meta to the AreaData w/ DynData
-					//DynData<AreaData> areaDynData = new DynData<AreaData>(map);
-					//areaDynData["AltSidesHelperMeta"] = meta;
+					// Attach the meta to the AreaData
 					AltSidesMetadata[map] = meta;
 					if(meta.AltSideData.IsAltSide) {
 						var aside = AreaData.Get(meta.AltSideData.For);
@@ -638,6 +626,9 @@ namespace AltSidesHelper {
 					}
 				}
 			}
+
+			// sort alt-sides to the end
+			AreaData.Areas.Sort(typeof(AreaData).GetMethod("AreaComparison", BindingFlags.NonPublic | BindingFlags.Static).CreateDelegate<Comparison<AreaData>>());
 
 			Logger.Log(LogLevel.Info, "AltSidesHelper", $"Loaded {altsides} alt-sides!");
 
@@ -677,6 +668,7 @@ namespace AltSidesHelper {
 		}
 
 		private void HideAltSides(On.Celeste.OuiChapterSelect.orig_Added orig, OuiChapterSelect self, Scene scene) {
+			// GetMinMaxArea
 			orig(self, scene);
 			var icons = new DynData<OuiChapterSelect>(self).Get<List<OuiChapterSelectIcon>>("icons");
 			for(int i = icons.Count - 1; i >= 0; i--) {

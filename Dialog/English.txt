@@ -9,6 +9,7 @@ leppa_AltSidesHelper_high_difficulty= Remember to take breaks, and good luck!
 
 leppa_AltSidesHelper= Alt Sides Helper
 leppa_AltSidesHelper_AltSidesHelperTest= Alt-sides Helper Test
+leppa_AltSidesHelper_AltSidesHelperTestSeq= Alt-sides Helper Test Ch2
 
 # It's just pico8 music but w/e
 leppa_AltSidesHelper_AltSidesHelperTest_B_remix= (Celeste Classic: Area 2)
@@ -26,5 +27,6 @@ poem_leppa_AltSidesHelper_AltSidesHelperTest_A= A-Side Heart
 poem_leppa_AltSidesHelper_AltSidesHelperTest_B_A= B-Side Heart
 poem_leppa_AltSidesHelper_AltSidesHelperTest_C_A= C-Side Heart
 poem_leppa_AltSidesHelper_AltSidesHelperTest_D_A= D-Side Heart
+poem_leppa_AltSidesHelper_AltSidesHelperTestSeq_A= Another world
 
 leppa_AltSidesHelper_AltSidesHelperTest_Label= A-SIDE

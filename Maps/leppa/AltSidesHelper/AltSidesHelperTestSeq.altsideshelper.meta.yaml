@@ -1,0 +1,4 @@
+Sides:
+- OverrideVanillaSideData: true
+  Preset: "a-side"
+  JournalHeartIcon: "leppa/AltSidesHelper/heartgemPurple"
