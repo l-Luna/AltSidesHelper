@@ -86,7 +86,7 @@ namespace AltSidesHelper {
 				typeof(LevelSetStats).GetProperty("MaxArea", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
 				typeof(AltSidesHelperModule).GetMethod("OnLevelSetStatsGetMaxArea", BindingFlags.NonPublic | BindingFlags.Static)
 			);
-			hook_LevelSetStats_get_MaxArea = new Hook(
+			hook_Session_get_FullClear = new Hook(
 				typeof(Session).GetProperty("FullClear", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(),
 				typeof(AltSidesHelperModule).GetMethod("OnSessionGetFullClear", BindingFlags.NonPublic | BindingFlags.Static)
 			);
@@ -124,9 +124,18 @@ namespace AltSidesHelper {
 			hook_OuiChapterPanel_get_option.Dispose();
 			hook_OuiChapterSelect_get_area.Dispose();
 			hook_LevelSetStats_get_MaxArea.Dispose();
+			hook_Session_get_FullClear.Dispose();
 			mod_OuiFileSelectSlot_orig_Render.Dispose();
 
 			AltSidesMetadata.Clear();
+		}
+
+		public override void DeserializeSaveData(int index, byte[] data) {
+			base.DeserializeSaveData(index, data);
+			if(AltSidesSaveData == null)
+				Instance._SaveData = new AltSidesHelperSaveData();
+			if(AltSidesSaveData.UnlockedAltSideIDs == null)
+				AltSidesSaveData.UnlockedAltSideIDs = new HashSet<string>();
 		}
 
 		private void ModFileSelectSlotRender(ILContext il) {
@@ -138,9 +147,8 @@ namespace AltSidesHelper {
 				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
 				cursor.Emit(OpCodes.Ldarg_0);
 				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
-				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[16]);
+				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[11]);
 				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
-					Logger.Log("AltSidesHelper", $"orig: {orig}, save: {save}, index: {index}");
 					var levelset = save.LevelSet;
 					AreaData data = null; int i = 0;
 					foreach(var item in AreaData.Areas) {
@@ -459,7 +467,7 @@ namespace AltSidesHelper {
 				for(int i1 = 0; i1 < meta.Sides.Length; i1++) {
 					AltSidesHelperMode mode = meta.Sides[i1];
 					if(!mode.OverrideVanillaSideData) {
-						if((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || (mode.UnlockMode.Equals("c_sides_unlocked") && csidesunlocked) || mode.UnlockMode.Equals("always") || SaveData.Instance.DebugMode || SaveData.Instance.CheatMode) {
+						if(mode.UnlockMode != null && AltSidesSaveData.UnlockedAltSideIDs != null && ((mode.UnlockMode.Equals("consecutive") && prevCompleted) || (mode.UnlockMode.Equals("with_previous") && prevUnlocked) || (mode.UnlockMode.Equals("triggered") && AltSidesSaveData.UnlockedAltSideIDs.Contains(mode.Map)) || (mode.UnlockMode.Equals("c_sides_unlocked") && csidesunlocked) || mode.UnlockMode.Equals("always")) || (SaveData.Instance != null && (SaveData.Instance.DebugMode || SaveData.Instance.CheatMode))) {
 							unlockedModeCount++;
 							siblings++;
 							prevUnlocked = true;
