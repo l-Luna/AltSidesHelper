@@ -76,3 +76,15 @@ The cassette has additional attributes that specify what sprites and text it use
  - Sprite Path: The sprites to be used for the cassette in-world. `collectables/leppa/AltSidesHelper/dside_cassette/` by default. `collectables/cassette/` for the vanilla sprite.
  - Unlock Text: A comma seperated list of dialog keys for captions to be displayed in the unlock cutscene. `leppa_AltSidesHelper_dside_unlocked` ("D-Side Unlocked") by default. `OVERWORLD_REMIX_UNLOCKED` for vanilla text ("B-Side unlocked").
  - Menu Sprite: The image to be displayed in the unlock cutscene. `collectables/leppa/AltSidesHelper/dside_cassette` by default. `collectables/cassette` for the vanilla sprite.
+
+## Verbose Logging
+
+To enable verbose logging, open `modsettings-Everest.celeste` in your saves folder, and replace the line beginning with `LogLevels` with:
+
+```yaml
+LogLevels:
+  '': Info
+  AltSidesHelper: Verbose
+```
+
+This causes most customisations to be logged too. You probably don't want this, unless you're a mod author investigating an incompatibility, or you're sending me a bug report.
