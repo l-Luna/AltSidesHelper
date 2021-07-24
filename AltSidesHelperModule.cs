@@ -195,6 +195,33 @@ namespace AltSidesHelper {
 					});
 				}
 			}
+			if(cursor.TryGotoNext(MoveType.After,
+								instr => instr.MatchLdstr("cassette"),
+								instr => instr.MatchStelemRef(),
+								instr => instr.MatchNewobj<OuiJournalPage.IconsCell>())) {
+				cursor.Emit(OpCodes.Ldloc_2); // data
+				cursor.EmitDelegate<Func<OuiJournalPage.IconsCell, AreaData, OuiJournalPage.IconsCell>>((orig, data) => {
+					var meta = GetMetaForAreaData(data);
+					if(meta != null) {
+						DynData<OuiJournalPage.IconsCell> dyn = new DynData<OuiJournalPage.IconsCell>(orig);
+						List<string> cassettes = new List<string>();
+						if(string.Equals(dyn.Get<string[]>("icons")[0], "cassette")) {
+							cassettes.Add("cassette");
+						}
+						foreach(var item in meta.Sides) {
+							if(!item.OverrideVanillaSideData && item.AddCassetteIcon && AltSidesSaveData.UnlockedAltSideIDs.Contains(item.Map)) {
+								cassettes.Add(item.JournalCassetteIcon);
+							}
+						}
+						if(cassettes.Count == 0) {
+							cassettes.Add("dot");
+						}
+						dyn["icons"] = cassettes.ToArray();
+						dyn["iconSpacing"] = -40f;
+					}
+					return orig;
+				});
+			}
 		}
 
 		private int SortAltSidesLast(On.Celeste.AreaData.orig_AreaComparison orig, AreaData a, AreaData b) {
@@ -449,8 +476,7 @@ namespace AltSidesHelper {
 
 		private static void AddExtraModes(OuiChapterPanel self) {
 			// check map meta for extra sides or side overrides
-			//AltSidesHelperMeta meta = new DynData<AreaData>(self.Data).Get<AltSidesHelperMeta>("AltSidesHelperMeta");
-			AltSidesHelperMeta meta = GetMetaForAreaData(self.Data);//AltSidesMetadata[self.Data];
+			AltSidesHelperMeta meta = GetMetaForAreaData(self.Data);
 			if(meta?.Sides != null) {
 				Logger.Log("AltSidesHelper", $"Customising panel UI for \"{self.Data.SID}\".");
 				bool[] unlockedSides = new bool[meta.Sides.Count()];
@@ -842,6 +868,16 @@ namespace AltSidesHelper {
 			set;
 		} = "";
 
+		public string JournalCassetteIcon {
+			get;
+			set;
+		} = "";
+
+		public bool AddCassetteIcon {
+			get;
+			set;
+		} = false;
+
 		// Hex colour code
 		public string HeartColour {
 			get;
@@ -888,6 +924,7 @@ namespace AltSidesHelper {
 			ChapterPanelHeartIcon = "collectables/heartgem/0/spin",
 			InWorldHeartIcon = "collectables/heartGem/0/",
 			JournalHeartIcon = "heartgem0",
+			JournalCassetteIcon = "cassette",
 			HeartColour = "8cc7fa",
 			EndScreenTitle = "AREACOMPLETE_NORMAL",
 			EndScreenClearTitle = "AREACOMPLETE_NORMAL_FULLCLEAR",
@@ -903,6 +940,7 @@ namespace AltSidesHelper {
 			ChapterPanelHeartIcon = "collectables/heartgem/1/spin",
 			InWorldHeartIcon = "collectables/heartGem/1/",
 			JournalHeartIcon = "heartgem1",
+			JournalCassetteIcon = "cassette",
 			HeartColour = "ff668a",
 			EndScreenTitle = "AREACOMPLETE_BSIDE",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_bside",
@@ -918,6 +956,7 @@ namespace AltSidesHelper {
 			ChapterPanelHeartIcon = "collectables/heartgem/2/spin",
 			InWorldHeartIcon = "collectables/heartGem/2/",
 			JournalHeartIcon = "heartgem2",
+			JournalCassetteIcon = "cassette",
 			HeartColour = "fffc24",
 			EndScreenTitle = "AREACOMPLETE_CSIDE",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_cside",
@@ -934,6 +973,7 @@ namespace AltSidesHelper {
 			ChapterPanelHeartIcon = "collectables/leppa/AltSidesHelper/heartgem/dside",
 			InWorldHeartIcon = "collectables/heartGem/3/",
 			JournalHeartIcon = "leppa/AltSidesHelper/heartgemD",
+			JournalCassetteIcon = "leppa/AltSidesHelper/cassetteD",
 			HeartColour = "ffffff",
 			EndScreenTitle = "leppa_AltSidesHelper_areacomplete_dside",
 			EndScreenClearTitle = "leppa_AltSidesHelper_areacomplete_fullclear_dside",
@@ -968,6 +1008,8 @@ namespace AltSidesHelper {
 				InWorldHeartIcon = from.InWorldHeartIcon;
 			if (string.IsNullOrEmpty(JournalHeartIcon))
 				JournalHeartIcon = from.JournalHeartIcon;
+			if(string.IsNullOrEmpty(JournalCassetteIcon))
+				JournalCassetteIcon = from.JournalCassetteIcon;
 			if (string.IsNullOrEmpty(HeartColour))
 				HeartColour = from.HeartColour;
 			if (string.IsNullOrEmpty(EndScreenTitle))
@@ -989,6 +1031,7 @@ namespace AltSidesHelper {
 				ChapterPanelHeartIcon = th.ChapterPanelHeartIcon,
 				InWorldHeartIcon = th.InWorldHeartIcon,
 				JournalHeartIcon = th.JournalHeartIcon,
+				JournalCassetteIcon = th.JournalCassetteIcon,
 				HeartColour = th.HeartColour,
 				EndScreenTitle = th.EndScreenTitle,
 				EndScreenClearTitle = th.EndScreenClearTitle,

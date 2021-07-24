@@ -20,3 +20,4 @@ Sides:
   CanFullClear: true
   CassetteNeededForFullClear: false
   UnlockMode: "triggered"
+  AddCassetteIcon: true
