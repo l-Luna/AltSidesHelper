@@ -141,25 +141,71 @@ namespace AltSidesHelper {
 		private void ModFileSelectSlotRender(ILContext il) {
 			ILCursor cursor = new ILCursor(il);
 			if(cursor.TryGotoNext(MoveType.After,
+								instr => instr.MatchLdstr("cassette"),
+								instr => instr.MatchCallvirt<Atlas>("get_Item"))) {
+
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render, for custom cassettes (1/2).");
+				cursor.Emit(OpCodes.Ldarg_0);
+				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
+				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[11]);
+				// literally just tell it to render nothing
+				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
+					AreaData data = FromIndexInSave(save, index);
+					if(data != null) {
+						var meta = GetModeMetaForAltSide(data);
+						if(meta != null && meta.AddCassetteIcon) {
+							Logger.Log("AltSidesHelper", $"Removing vanilla cassette texture for \"{data.SID}\".");
+							// just don't render
+							return MTN.Journal["leppa/AltSidesHelper/empty"];
+						}
+					}
+					return orig;
+				});
+				if(cursor.TryGotoNext(MoveType.After, instr => instr.MatchCall<MTexture>("DrawCentered"))) {
+					Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render, for custom cassettes (2/2).");
+					cursor.Emit(OpCodes.Ldarg_0);
+					cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
+					cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[11]); // index
+					cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[8]); // vector
+					cursor.EmitDelegate<Action<SaveData, int, Vector2>>((save, index, vector) => {
+						AreaData data = FromIndexInSave(save, index);
+						if(data != null) {
+							var meta = GetMetaForAreaData(data);
+							if(meta != null) {
+								Logger.Log("AltSidesHelper", $"Displaying correct cassette textures for \"{data.SID}\".");
+								List<string> cassettes = new List<string>();
+								if(save.GetAreaStatsFor(data.ToKey()).Cassette) {
+									cassettes.Add("cassette");
+								}
+								foreach(var item in meta.Sides) {
+									if(!item.OverrideVanillaSideData && item.AddCassetteIcon && AltSidesSaveData.UnlockedAltSideIDs.Contains(item.Map)) {
+										cassettes.Add(item.JournalCassetteIcon);
+									}
+								}
+								int count = cassettes.Count;
+								if(count > 0) {
+									for(int i = 0; i < count; i++) {
+										string item = cassettes[i];
+										MTN.Journal[item].DrawCentered(vector + new Vector2(-280 + (index + 0.5f) * 75f, -75f + (index - (count / 2f)) * 24));
+									}
+								} else {
+									MTN.FileSelect["dot"].DrawCentered(vector + new Vector2(-280 + (index + 0.5f) * 75f, -75f));
+								}
+							}
+						}
+					});
+				}
+			}
+			if(cursor.TryGotoNext(MoveType.After,
 								instr => instr.Match(OpCodes.Box),
 								instr => instr.MatchCall<string>("Concat"),
 								instr => instr.MatchCallvirt<Atlas>("get_Item"))) {
-				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render.");
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render, for custom hearts.");
 				cursor.Emit(OpCodes.Ldarg_0);
 				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
 				cursor.Emit(OpCodes.Ldloc_S, il.Method.Body.Variables[11]);
 				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
-					var levelset = save.LevelSet;
-					AreaData data = null; int i = 0;
-					foreach(var item in AreaData.Areas) {
-						if(item.GetLevelSet().Equals(levelset)) {
-							if(i == index) {
-								data = item;
-								break;
-							}
-							i++;
-						}
-					}
+					AreaData data = FromIndexInSave(save, index);
 					if(data != null) {
 						var meta = GetModeMetaForAltSide(data);
 						if(meta != null && meta.OverrideHeartTextures) {
@@ -173,6 +219,21 @@ namespace AltSidesHelper {
 			}
 		}
 
+		private static AreaData FromIndexInSave(SaveData save, int index) {
+			var levelset = save.LevelSet;
+			AreaData data = null; int i = 0;
+			foreach(var item in AreaData.Areas) {
+				if(item.GetLevelSet().Equals(levelset)) {
+					if(i == index) {
+						data = item;
+						break;
+					}
+					i++;
+				}
+			}
+			return data;
+		}
+
 		private void ModJournalProgressPageConstruct(ILContext il) {
 			ILCursor cursor = new ILCursor(il);
 			if(cursor.TryGotoNext(MoveType.After,
@@ -182,7 +243,7 @@ namespace AltSidesHelper {
 				if(cursor.TryGotoNext(MoveType.After,
 								instr => instr.Match(OpCodes.Box),
 								instr => instr.MatchCall<string>("Concat"))) {
-					Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor.");
+					Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor, for custom hearts.");
 					cursor.Emit(OpCodes.Ldloc_2); // data
 					cursor.EmitDelegate<Func<string, AreaData, string>>((orig, data) => {
 						var meta = GetModeMetaForAltSide(data);
@@ -199,6 +260,7 @@ namespace AltSidesHelper {
 								instr => instr.MatchLdstr("cassette"),
 								instr => instr.MatchStelemRef(),
 								instr => instr.MatchNewobj<OuiJournalPage.IconsCell>())) {
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal progress page at {cursor.Index} in IL for OuiJournalProgress constructor, for custom cassettes.");
 				cursor.Emit(OpCodes.Ldloc_2); // data
 				cursor.EmitDelegate<Func<OuiJournalPage.IconsCell, AreaData, OuiJournalPage.IconsCell>>((orig, data) => {
 					var meta = GetMetaForAreaData(data);
