@@ -624,9 +624,7 @@ namespace AltSidesHelper {
 							Logger.Log(LogLevel.Info, "AltSidesHelper", $"Will customise A-Side for \"{map.SID}\".");
 						}
 					}
-					// Attach the meta to the AreaData w/ DynData
-					//DynData<AreaData> areaDynData = new DynData<AreaData>(map);
-					//areaDynData["AltSidesHelperMeta"] = meta;
+					// Attach the meta to the AreaData
 					AltSidesMetadata[map] = meta;
 					if(meta.AltSideData.IsAltSide) {
 						var aside = AreaData.Get(meta.AltSideData.For);
@@ -642,7 +640,8 @@ namespace AltSidesHelper {
 						map.TitleAccentColor = aside.TitleAccentColor;
 						map.TitleBaseColor = aside.TitleBaseColor;
 						map.TitleTextColor = aside.TitleTextColor;
-						map.Name = aside.Name;
+						if(meta.AltSideData.CopyTitle)
+							map.Name = aside.Name;
 					}
 				}
 			}
@@ -764,6 +763,11 @@ namespace AltSidesHelper {
 		} = "";
 
 		public bool CopyEndScreenData {
+			get;
+			set;
+		} = true;
+
+		public bool CopyTitle {
 			get;
 			set;
 		} = true;
