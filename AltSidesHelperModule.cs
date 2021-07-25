@@ -49,6 +49,9 @@ namespace AltSidesHelper {
 		// heart display in chapter panel
 		public static SpriteBank HeartSpriteBank;
 
+		// currently loaded save data for file select cassettes
+		private static int curSlot = -1;
+
 		public AltSidesHelperModule() {
 			Instance = this;
 		}
@@ -143,7 +146,6 @@ namespace AltSidesHelper {
 			if(cursor.TryGotoNext(MoveType.After,
 								instr => instr.MatchLdstr("cassette"),
 								instr => instr.MatchCallvirt<Atlas>("get_Item"))) {
-
 				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render, for custom cassettes (1/2).");
 				cursor.Emit(OpCodes.Ldarg_0);
 				cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
@@ -152,8 +154,8 @@ namespace AltSidesHelper {
 				cursor.EmitDelegate<Func<MTexture, SaveData, int, MTexture>>((orig, save, index) => {
 					AreaData data = FromIndexInSave(save, index);
 					if(data != null) {
-						var meta = GetModeMetaForAltSide(data);
-						if(meta != null && meta.AddCassetteIcon) {
+						var meta = GetMetaForAreaData(data);
+						if(meta != null && meta.Sides.Any(side => side.AddCassetteIcon)) {
 							Logger.Log("AltSidesHelper", $"Removing vanilla cassette texture for \"{data.SID}\".");
 							// just don't render
 							return MTN.Journal["leppa/AltSidesHelper/empty"];
@@ -161,7 +163,7 @@ namespace AltSidesHelper {
 					}
 					return orig;
 				});
-				if(cursor.TryGotoNext(MoveType.After, instr => instr.MatchCall<MTexture>("DrawCentered"))) {
+				if(cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallvirt<MTexture>("DrawCentered"))) {
 					Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding file select slot at {cursor.Index} in IL for OuiFileSelectSlot.orig_Render, for custom cassettes (2/2).");
 					cursor.Emit(OpCodes.Ldarg_0);
 					cursor.Emit(OpCodes.Ldfld, typeof(OuiFileSelectSlot).GetField("SaveData"));
@@ -171,8 +173,13 @@ namespace AltSidesHelper {
 						AreaData data = FromIndexInSave(save, index);
 						if(data != null) {
 							var meta = GetMetaForAreaData(data);
-							if(meta != null) {
+							if(meta != null && meta.Sides.Any(side => side.AddCassetteIcon)) {
 								Logger.Log("AltSidesHelper", $"Displaying correct cassette textures for \"{data.SID}\".");
+								// make sure my stuff is loaded
+								if(curSlot != save.FileSlot) {
+									Instance.DeserializeSaveData(save.FileSlot, Instance.ReadSaveData(save.FileSlot));
+									curSlot = save.FileSlot;
+								}
 								List<string> cassettes = new List<string>();
 								if(save.GetAreaStatsFor(data.ToKey()).Cassette) {
 									cassettes.Add("cassette");
@@ -186,7 +193,7 @@ namespace AltSidesHelper {
 								if(count > 0) {
 									for(int i = 0; i < count; i++) {
 										string item = cassettes[i];
-										MTN.Journal[item].DrawCentered(vector + new Vector2(-280 + (index + 0.5f) * 75f, -75f + (index - (count / 2f)) * 24));
+										MTN.Journal[item].DrawCentered(vector + new Vector2(-280 + (index + 0.5f) * 75f + (i - (count / 2f)) * 5, -75f + (i - (count / 2f)) * 20));
 									}
 								} else {
 									MTN.FileSelect["dot"].DrawCentered(vector + new Vector2(-280 + (index + 0.5f) * 75f, -75f));
