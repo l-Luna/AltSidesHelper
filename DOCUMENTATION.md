@@ -38,6 +38,9 @@ Here's the full list of attributes that are already functional that you can set 
  - `OverrideHeartTextures`: Whether the in-world heart, chapter panel heart, and heart poem textures and colours should be overriden to match `ChapterPanelHeartIcon`, `HeartColour`, and `InWorldHeartIcon`. `true` by default, but you might want to disable this if you're using e.g. Collab Utils 2's options for overriding the heart textures and colour.
  - `OverrideVanillaSideData`: If true, the A-Side will have its data modified, rather than creating a new side. See "Changing A-Side data". (`false`)
  - `JournalHeartIcon`: The texture to be used for the crystal heart in the journal, in the Journal atlas. Also used for the file select screen. (`heartgem0`, `heartgem1`, `heartgem2`, `leppa/AltSidesHelper/heartgemD`)
+These two options are experimental. They should function fully, but may have bugs or performance issues - please report any you find!
+ - `AddCassetteIcon`: For alt-sides unlocked by custom cassettes. Enabling this option will add the icon specified in `JournalCassetteIcon` to both the journal entry for the A-Side and the file select screen. `false` by default.
+ - `JournalCassetteIcon`: For alt-sides unlocked by custom cassettes. A texture in the journal atlas. (`cassette`, `cassette`, `cassette`, `leppa/AltSidesHelper/cassetteD`.)
 
 Attributes for more customisation (e.g. end screen music, columns in journal) are planned. Journal customisation will likely involve a level-set specific meta file for adding columns (such as for deaths).
 
@@ -54,8 +57,9 @@ Available attributes are:
  - `IsAltSide`: Set this to true for any alt-side. If unset, it won't act as an alt-side.
  - `For`: The ID of the A-Side map. If `IsAltSide` is set but `For` is incorrect, the alt-side will function incorrectly.
  - `CopyEndScreenData`: Whether the alt-side should use the A-Side's end screen. (True by default.)
+ - `CopyTitle`: Whether the alt-side should use the A-Side's title. (True by default.)
 
-If `CopyEndScreenData` is false, you'll need to use a seperate `mapname.meta.yaml` to set those.
+If `CopyEndScreenData` is false, you'll need to use a seperate `mapname.meta.yaml` to set it, and if `CopyTitle` is false you'll need to specify that seperately in your language files.
 
 ## Changing A-Side data
 You can modify A-Side data in exactly the same way as you would specify alt-side data. Instead of specifying a value for `Map`, set `OverrideVanillaSideData: true`. `IsAltSide` and `For` should not be set for this. Here's an example:
