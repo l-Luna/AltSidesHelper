@@ -1,0 +1,11 @@
+# -- Entity and Trigger Tooltips --
+#    placements.entities.entityName.tooltips.attr=Tooltip
+#    placements.triggers.triggerName.tooltips.attr=Tooltip
+
+
+placements.entities.AltSidesHelper/AltSideCassette.tooltips.altSideToUnlock=The ID (path from Maps/, minus .bin) of the map to be unlocked.
+placements.triggers.AltSidesHelper/AltSideUnlockTrigger.tooltips.altSideToUnlock=The ID (path from Maps/, minus .bin) of the map to be unlocked.
+
+placements.entities.AltSidesHelper/AltSideCassette.tooltips.spritePath=The path to the sprites to be used in-world, relative to Graphics/Atlases/Gameplay/. collectables/leppa/AltSidesHelper/dside_cassette/ by default. collectables/cassette/ for the vanilla sprite.
+placements.entities.AltSidesHelper/AltSideCassette.tooltips.unlockText=A comma-separated list of dialog keys for captions to be displayed in the unlock cutscene. leppa_AltSidesHelper_dside_unlocked ("D-Side Unlocked") by default. OVERWORLD_REMIX_UNLOCKED for vanilla text ("B-Side unlocked").
+placements.entities.AltSidesHelper/AltSideCassette.tooltips.menuSprite=The image to be displayed in the unlock cutscene. collectables/leppa/AltSidesHelper/dside_cassette by default. collectables/cassette for the vanilla sprite.
