@@ -1,0 +1,15 @@
+# -- Entities --
+# entities.entityName.placements.name.*
+# entities.entityName.placements.description.*
+# entities.entityName.attributes.name.*
+# entities.entityName.attributes.description.*
+
+entities.AltSidesHelper/AltSideCassette.placements.name.default=Alt-side Cassette (AltSidesHelper)
+triggers.AltSidesHelper/AltSideUnlockTrigger.placements.name.trigger=Alt-side Unlock Trigger (AltSidesHelper)
+
+entities.AltSidesHelper/AltSideCassette.attributes.description.altSideToUnlock=The ID (path from Maps/, minus .bin) of the map to be unlocked.
+triggers.AltSidesHelper/AltSideUnlockTrigger.attributes.description.altSideToUnlock=The ID (path from Maps/, minus .bin) of the map to be unlocked.
+
+entities.AltSidesHelper/AltSideCassette.attributes.description.spritePath=The path to the sprites to be used in-world, relative to Graphics/Atlases/Gameplay/. collectables/leppa/AltSidesHelper/dside_cassette/ by default. collectables/cassette/ for the vanilla sprite.
+entities.AltSidesHelper/AltSideCassette.attributes.description.unlockText=A comma-separated list of dialog keys for captions to be displayed in the unlock cutscene. leppa_AltSidesHelper_dside_unlocked ("D-Side Unlocked") by default. OVERWORLD_REMIX_UNLOCKED for vanilla text ("B-Side unlocked").
+entities.AltSidesHelper/AltSideCassette.attributes.description.menuSprite=The image to be displayed in the unlock cutscene. collectables/leppa/AltSidesHelper/dside_cassette by default. collectables/cassette for the vanilla sprite.
