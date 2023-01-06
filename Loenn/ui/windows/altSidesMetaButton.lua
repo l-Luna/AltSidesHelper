@@ -1,12 +1,11 @@
 ﻿local mods = require("mods")
-
 local utils = require("utils")
+local languageRegistry = require("language_registry")
 
 local uiElements = require("ui.elements")
-local widgetUtils = require("ui.widgets.utils")
-local form = require("ui.forms.form")
-local languageRegistry = require("language_registry")
 local notifications = require("ui.notification")
+local widgetUtils = require("ui.widgets.utils")
+local forms = require("ui.forms.form")
 
 local altSidesMeta = mods.requireFromPlugin("libraries.altSidesMeta")
 
@@ -59,14 +58,18 @@ end
 
 --
 
+--- tracks which alt-side has been selected for editing.
+--- nil for the A-Side, or a map's name.
+---@fieldType string
+--[[ global ]] altSideSelected = nil
+
+--
+
 local metaButton = uiElements.group({})
 
-metaButton.open = function (element)
+local function freshForm(values)
     local language = languageRegistry.getLanguage()
-    
-    local windowTitle = tostring(language.ui.leppa.altsideshelpermeta.title)
-
-    groups = utils.deepcopy(intoGroups(altSidesMeta.orderedOptions))
+    local groups = intoGroups(altSidesMeta.orderedOptions)
     for _, group in ipairs(groups) do
         if group.title then
             local parts = group.title:split(".")()
@@ -74,22 +77,31 @@ metaButton.open = function (element)
             group.title = tostring(baseLanguage.name)
         end
     end
-    
-    local metadataForm = form.getForm({}, {}, {
+
+    local form = forms.getForm({}, values, {
         fields = intoInfos(altSidesMeta.orderedOptions),
         groups = groups
     })
 
-    local window = uiElements.window(windowTitle, metadataForm):with({
+    return form
+end
+
+function metaButton.open(element)
+    local language = languageRegistry.getLanguage()
+    local windowTitle = tostring(language.ui.leppa.altsideshelpermeta.title)
+
+    local window = uiElements.window(windowTitle, freshForm({})):with({
         x = windowX,
         y = windowY,
+        width = 740,
+        height = 640,
 
         updateHidden = true
     })
 
     metaButton.parent:addChild(window)
     widgetUtils.addWindowCloseButton(window)
-    form.prepareScrollableWindow(window)
+    forms.prepareScrollableWindow(window)
 
     return window
 end

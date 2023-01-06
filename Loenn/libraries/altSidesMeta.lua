@@ -83,8 +83,31 @@ function metaHelper.loadMeta()
         return nil
     end
     
-    local metaFile = string.sub(baseFile, 1, -5)
+    local metaFile = string.sub(baseFile, 1, -5) .. ".altsideshelper.meta.yaml"
     return metaHelper.loadMetaByPath(metaFile)
+end
+
+--- saves the given metadata to the given path.
+---@param meta table
+---@param path string
+---@return void
+function metaHelper.saveMetaToPath(meta, path)
+    local yaml = require("lib.yaml.writer")
+    yaml.write(path, meta)
+end
+
+--- saves the given metadata to the appropriate place for this map; does nothing if the map is not saved.
+---@param meta table
+---@return void
+function metaHelper.saveMeta(meta)
+    local loadedState = require("loaded_state")
+    local baseFile = loadedState.filename
+    if not baseFile then
+        return
+    end
+
+    local metaFile = string.sub(baseFile, 1, -5) .. ".altsideshelper.meta.yaml"
+    metaHelper.saveMetaToPath(meta, metaFile)
 end
 
 return metaHelper
