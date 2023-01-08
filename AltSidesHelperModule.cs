@@ -533,8 +533,11 @@ namespace AltSidesHelper {
 		private void FixSettingAltSideStats(On.Celeste.OuiChapterPanel.orig_UpdateStats orig, OuiChapterPanel self, bool wiggle, bool? overrideStrawberryWiggle, bool? overrideDeathWiggle, bool? overrideHeartWiggle) {
 			if(shouldResetStats) {
 				orig(self, wiggle, overrideStrawberryWiggle, overrideDeathWiggle, overrideHeartWiggle);
-				if(GetModeMetaForAltSide(self.Data)?.ShowBerriesAsGolden ?? false)
-					new DynData<OuiChapterPanel>(self).Get<StrawberriesCounter>("strawberries").Golden = true;
+				if(GetModeMetaForAltSide(self.Data)?.ShowBerriesAsGolden ?? false){
+					var strawberriesCounter = new DynData<OuiChapterPanel>(self).Get<StrawberriesCounter>("strawberries");
+					strawberriesCounter.Golden = true;
+					strawberriesCounter.ShowOutOf = false;
+				}
 			}
 		}
 
