@@ -7,6 +7,8 @@ local notifications = require("ui.notification")
 local widgetUtils = require("ui.widgets.utils")
 local forms = require("ui.forms.form")
 
+local log = require("logging")
+
 local altSidesMeta = mods.requireFromPlugin("libraries.altSidesMeta")
 
 --
@@ -56,6 +58,44 @@ local function intoInfos(tables)
     return infos
 end
 
+local function intoDefaults(tables)
+    local defaults = {}
+
+    for _, tb in ipairs(tables) do
+        for _, field in ipairs(tb) do
+            -- doesn't have a default -> empty string
+            if field.default == nil then
+                defaults[field[1]] = ""
+            else
+                if type(field.default) == "boolean" then
+                    defaults[field[1]] = field.default
+                elseif type(field.default) == "number" then
+                    defaults[field[1]] = field[3][field.default]
+                end
+            end
+        end
+    end
+    
+    return defaults
+end
+
+--- from https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console
+---@param o table
+---@return string
+local function dump(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+            if type(k) ~= 'number' then k = '"'..k..'"' end
+            s = s .. '['..k..'] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
+end
+
+
 --
 
 --- tracks which alt-side has been selected for editing.
@@ -80,7 +120,8 @@ local function freshForm(values)
 
     local form = forms.getForm({}, values, {
         fields = intoInfos(altSidesMeta.orderedOptions),
-        groups = groups
+        groups = groups,
+        ignoreUnordered = true
     })
 
     return form
@@ -90,7 +131,19 @@ function metaButton.open(element)
     local language = languageRegistry.getLanguage()
     local windowTitle = tostring(language.ui.leppa.altsideshelpermeta.title)
 
-    local window = uiElements.window(windowTitle, freshForm({})):with({
+    local values = altSidesMeta.loadMeta()
+    if values and values.Sides and values.Sides[1] then
+        values = values.Sides[1]
+    else
+        values = {}
+    end
+    
+    local valuesW = intoDefaults(altSidesMeta.orderedOptions)
+    for i, v in pairs(values) do
+        valuesW[i] = v
+    end
+    
+    local window = uiElements.window(windowTitle, freshForm(valuesW)):with({
         x = windowX,
         y = windowY,
         width = 740,

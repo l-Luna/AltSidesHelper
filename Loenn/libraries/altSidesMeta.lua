@@ -2,13 +2,22 @@
 
 -- list and group available options
 
+-- each option has the following structure:
+-- [1]: string: name (e.g. Label, InWorldHeartIcon)
+-- [2]: string: type (e.g. string, boolean, option)
+-- [3]: optional list of strings: suggested options
+-- [default]: optional default value of that field, either:
+    -- a number, referring back to an entry in [3] by index
+    -- a boolean, for a literal boolean value
+-- preset based default values are handled with empty strings and not mentioned
+
 metaHelper.options = {}
 
 -- Map/OverrideVanillaSideData are handled specially
 metaHelper.options.meta = {
-    { "Preset", "option", { "none", "a-side", "b-side", "c-side", "d-side" } },
-    { "UnlockMode", "option", { "consecutively", "always", "triggered", "with_previous", "c_sides_unlocked" } },
-    { "OverrideHeartTextures", "boolean" },
+    { "Preset", "option", { "none", "a-side", "b-side", "c-side", "d-side" }, default = 1 },
+    { "UnlockMode", "option", { "consecutively", "always", "triggered", "with_previous", "c_sides_unlocked" }, default = 1 },
+    { "OverrideHeartTextures", "boolean", default = true },
     title = "meta"
 }
 
@@ -18,7 +27,7 @@ metaHelper.options.overworld = {
     { "DeathsIcon", "string", { "collectables/skullBlue", "collectables/skullRed", "collectables/skullGold" } },
     { "ChapterPanelHeartIcon", "string", { "collectables/heartgem/0/spin", "collectables/heartgem/1/spin", "collectables/heartgem/2/spin", "collectables/leppa/AltSidesHelper/heartgem/dside" } },
     { "JournalHeartIcon", "string", { "heartgem0", "heartgem1", "heartgem2", "leppa/AltSidesHelper/heartgemD" } },
-    { "ShowBerriesAsGolden", "boolean" },
+    { "ShowBerriesAsGolden", "boolean", default = false },
     title = "overworld"
 }
 
@@ -26,22 +35,22 @@ metaHelper.options.inGame = {
     { "InWorldHeartIcon", "string", { "collectables/heartGem/0", "collectables/heartGem/1", "collectables/heartGem/2", "collectables/heartGem/3" } },
     { "EndScreenTitle", "string", { "AREACOMPLETE_NORMAL", "AREACOMPLETE_BSIDE", "AREACOMPLETE_CSIDE", "leppa_AltSidesHelper_areacomplete_dside" } },
     { "HeartColour", "color", { "8cc7fa", "ff668a", "fffc24", "ffffff" } },
-    { "ShowHeartPoem", "boolean" },
-    { "ShowBSideRemixIntro", "boolean" },
+    { "ShowHeartPoem", "boolean", default = true }, -- TODO: except in c-sides!
+    { "ShowBSideRemixIntro", "boolean", default = false },
     title = "inGame"
 }
 
 metaHelper.options.fullClear = {
     { "EndScreenClearTitle", "string", { "AREACOMPLETE_NORMAL_FULLCLEAR", "leppa_AltSidesHelper_areacomplete_fullclear_bside", "leppa_AltSidesHelper_areacomplete_fullclear_cside", "leppa_AltSidesHelper_areacomplete_fullclear_dside" } },
-    { "CanFullClear", "boolean" },
-    { "CassetteNeededForFullClear", "boolean" },
-    { "HeartNeededForFullClear", "boolean" },
+    { "CanFullClear", "boolean", default = false },
+    { "CassetteNeededForFullClear", "boolean", default = true },
+    { "HeartNeededForFullClear", "boolean", default = true },
     title = "fullClear"
 }
 
 metaHelper.options.experimental = {
     { "JournalCassetteIcon", "string", { "cassette", "leppa/AltSidesHelper/cassetteD" } },
-    { "AddCassetteIcon", "boolean" },
+    { "AddCassetteIcon", "boolean", default = false },
     title = "experimental"
 }
 
@@ -63,7 +72,7 @@ function metaHelper.loadMetaByPath(path)
     local filesystem = require("utils.filesystem")
 
     if filesystem.isFile(path) then
-        local f = assert(io.open(file, "rb"))
+        local f = assert(io.open(path, "r"))
         local content = f:read("*all")
         f:close()
         
