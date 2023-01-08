@@ -35,7 +35,7 @@ metaHelper.options.inGame = {
     { "InWorldHeartIcon", "string", { "collectables/heartGem/0", "collectables/heartGem/1", "collectables/heartGem/2", "collectables/heartGem/3" } },
     { "EndScreenTitle", "string", { "AREACOMPLETE_NORMAL", "AREACOMPLETE_BSIDE", "AREACOMPLETE_CSIDE", "leppa_AltSidesHelper_areacomplete_dside" } },
     { "HeartColour", "color", { "8cc7fa", "ff668a", "fffc24", "ffffff" } },
-    { "ShowHeartPoem", "boolean", default = true }, -- TODO: except in c-sides!
+    { "ShowHeartPoem", "boolean", default = true }, -- TODO: except in c-sides!!
     { "ShowBSideRemixIntro", "boolean", default = false },
     title = "inGame"
 }

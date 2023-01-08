@@ -3,8 +3,11 @@ local utils = require("utils")
 local languageRegistry = require("language_registry")
 
 local uiElements = require("ui.elements")
+local uiUtils = require("ui.utils")
 local notifications = require("ui.notification")
 local widgetUtils = require("ui.widgets.utils")
+local lists = require("ui.widgets.lists")
+local collapsable = require("ui.widgets.collapsable")
 local forms = require("ui.forms.form")
 
 local log = require("logging")
@@ -95,7 +98,6 @@ local function dump(o)
     end
 end
 
-
 --
 
 --- tracks which alt-side has been selected for editing.
@@ -118,7 +120,7 @@ local function freshForm(values)
         end
     end
 
-    local form = forms.getForm({}, values, {
+    local form = forms.getFormBody(values, {
         fields = intoInfos(altSidesMeta.orderedOptions),
         groups = groups,
         ignoreUnordered = true
@@ -137,24 +139,42 @@ function metaButton.open(element)
     else
         values = {}
     end
-    
     local valuesW = intoDefaults(altSidesMeta.orderedOptions)
     for i, v in pairs(values) do
         valuesW[i] = v
     end
     
-    local window = uiElements.window(windowTitle, freshForm(valuesW)):with({
+    local display = uiElements.scrollbox(uiElements.column({
+        collapsable.getCollapsable("(This)", freshForm(valuesW)),
+        collapsable.getCollapsable("B-Side", freshForm(valuesW))
+    }))
+    -- make the scrollbox Actually Work
+    display:hook({
+        calcWidth = function(orig, element)
+            return element.inner.width
+        end,
+    }):with(uiUtils.fillHeight(true))
+
+    display = uiElements.column({
+        display,
+        uiElements.row({
+            uiElements.button("Save changes", function() end),
+            uiElements.button("Add side", function() end),
+            uiElements.button("Reset", function() end)
+        }):with(uiUtils.bottombound)
+    }):with(uiUtils.fillHeight(true))
+    
+    local window = uiElements.window(windowTitle, display):with({
         x = windowX,
         y = windowY,
-        width = 740,
-        height = 640,
+        width = 750,
+        height = 660,
 
         updateHidden = true
     })
 
     metaButton.parent:addChild(window)
     widgetUtils.addWindowCloseButton(window)
-    forms.prepareScrollableWindow(window)
 
     return window
 end
