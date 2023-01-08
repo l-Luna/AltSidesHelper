@@ -239,12 +239,7 @@ function metaButton.open(_)
         display,
         uiElements.row({
             uiElements.button("Save changes", function() save(fieldsByMap, altSideForField:getText()) end),
-            uiElements.label("//"):with(centrebound),
-            uiElements.button("Reset", function() end),
-            uiElements.label("//"):with(centrebound),
-            uiElements.button("Add side:", function() end),
-            altSideToAddField,
-            uiElements.label("OR mark this as alt-side for:"):with(centrebound),
+            uiElements.label("// Mark this as alt-side for:"):with(centrebound),
             altSideForField,
         }):with(uiUtils.bottombound)
     }):with(uiUtils.fillHeight(true))
@@ -252,7 +247,7 @@ function metaButton.open(_)
     local window = uiElements.window(windowTitle, display):with({
         x = windowX,
         y = windowY,
-        width = 830,
+        width = 720,
         height = 650,
 
         updateHidden = true
