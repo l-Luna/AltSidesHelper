@@ -62,6 +62,49 @@ metaHelper.orderedOptions = {
     metaHelper.options.experimental
 }
 
+-- util stuff
+
+---@param table table
+---@return number
+function metaHelper.tableLength(table)
+    local count = 0
+    for _ in pairs(table) do count = count + 1 end
+    return count
+end
+
+
+---@param o table
+---@return string
+function metaHelper.intoYaml(o, ident, blockhint)
+    ident = ident or 0
+    blockhint = blockhint or false
+    if type(o) == 'table' then
+        -- is it a list or a object?
+        if metaHelper.tableLength(o) == 0 then
+            return "{}"
+        end
+        if o[1] ~= nil then
+            local s = ""
+            for _, v in ipairs(o) do
+                s = s .. "\n" .. string.rep(" ", ident) .. "- " .. metaHelper.intoYaml(v, ident + 2, true)
+            end
+            return s
+        end
+        local s = ""
+        for k, v in pairs(o) do
+            s = s .. "\n" .. string.rep(" ", ident) .. tostring(k) .. ": " .. metaHelper.intoYaml(v, ident + 2)
+        end
+        if blockhint then
+            s = string.sub(s, 2 + ident)
+        end
+        return s
+    elseif type(o) == "string" then
+        return "\"" .. o .. "\""
+    else
+        return tostring(o)
+    end
+end
+
 -- load options
 
 --- load an `altsideshelper.meta.yaml` file from a full path.
@@ -101,8 +144,14 @@ end
 ---@param path string
 ---@return void
 function metaHelper.saveMetaToPath(meta, path)
-    local yaml = require("lib.yaml.writer")
-    yaml.write(path, meta)
+    local filesystem = require("utils.filesystem")
+    
+    if filesystem.isFile(path) then
+        ---@type file
+        local f = assert(io.open(path, "w"))
+        f:write(metaHelper.intoYaml(meta))
+        f:close()
+    end
 end
 
 --- saves the given metadata to the appropriate place for this map; does nothing if the map is not saved.

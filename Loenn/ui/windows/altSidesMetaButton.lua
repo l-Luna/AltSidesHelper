@@ -82,28 +82,79 @@ local function intoDefaults(tables)
     return defaults
 end
 
---- from https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console
----@param o table
----@return string
-local function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k,v in pairs(o) do
-            if type(k) ~= 'number' then k = '"'..k..'"' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
+--
+
+local function centrebound(el, arg2)
+    local offs
+    local offsf
+
+    local function apply(el2)
+        offs, offsf = uiUtils.fract(offs, 0)
+        if not offs then
+            offs = 0
         end
-        return s .. '} '
+
+        return uiUtils.hook(el2, {
+            layoutLateLazy = function(_, self)
+                -- Always reflow this child whenever its parent gets reflowed.
+                self:layoutLate()
+                self:repaint()
+            end,
+
+            layoutLate = function(orig, self)
+                local parent = self.parent
+                self.realY = math.floor(((parent.height - (parent.style:get("padding") or 0) - self.height) / 2) - offs - parent.innerHeight * offsf)
+                orig(self)
+            end
+        })
+    end
+
+    if type(el) == "number" then
+        offs = el
+        return apply
     else
-        return tostring(o)
+        offs = arg2
+        return apply(el)
     end
 end
 
 --
 
---- tracks which alt-side has been selected for editing.
---- nil for the A-Side, or a map's name.
----@fieldType string
---[[ global ]] altSideSelected = nil
+local function save(fieldsByMap, altSideFor)
+    local data = {}
+    local sides = {}
+    local defaults = intoDefaults(altSidesMeta.orderedOptions)
+
+    for i, v in pairs(fieldsByMap) do
+        local fieldData = forms.getFormData(v)
+        local filteredData = {}
+
+        for k2, v2 in pairs(fieldData) do
+            if defaults[k2] ~= v2 then
+                filteredData[k2] = v2
+            end
+        end
+        
+        if i == "(This)" then
+            filteredData.OverrideVanillaSideData = true
+        else
+            filteredData.Map = i
+        end
+        
+        table.insert(sides, filteredData)
+    end
+
+    data.Sides = sides
+
+    if altSideFor and altSideFor ~= "" then
+        local altSideData = {}
+        altSideData.IsAltSide = true
+        altSideData.For = altSideFor
+        data.AltSideData = altSideData
+    end
+
+    altSidesMeta.saveMeta(data)
+end
 
 --
 
@@ -120,47 +171,69 @@ local function freshForm(values)
         end
     end
 
-    local form = forms.getFormBody(values, {
+    local form, fields = forms.getFormBody(values, {
         fields = intoInfos(altSidesMeta.orderedOptions),
         groups = groups,
         ignoreUnordered = true
     })
 
-    return form
+    return form, fields
 end
 
-function metaButton.open(element)
+function metaButton.open(_)
     local language = languageRegistry.getLanguage()
     local windowTitle = tostring(language.ui.leppa.altsideshelpermeta.title)
 
     local values = altSidesMeta.loadMeta()
-    if values and values.Sides and values.Sides[1] then
-        values = values.Sides[1]
-    else
-        values = {}
+    local defaults = intoDefaults(altSidesMeta.orderedOptions)
+    local collapsableList = {}
+    local fieldsByMap = {}
+    if values and values.Sides then
+        for _, side in ipairs(values.Sides) do
+            local sideValues = utils.deepcopy(defaults)
+            for i, v in pairs(side) do
+                sideValues[i] = v
+            end
+            
+            local name = "<Unknown>"
+            local startOpen = false
+            if sideValues.OverrideVanillaSideData == true then
+                name = "(This)"
+                startOpen = true
+            elseif sideValues.Map ~= nil then
+                name = sideValues.Map
+            end
+
+            local form, fields = freshForm(sideValues)
+            fieldsByMap[name] = fields
+            table.insert(collapsableList, collapsable.getCollapsable(name, form, { startOpen = startOpen }))
+        end
     end
-    local valuesW = intoDefaults(altSidesMeta.orderedOptions)
-    for i, v in pairs(values) do
-        valuesW[i] = v
+    local iAltSideFor = ""
+    if values and values.AltSideData and values.AltSideData.IsAltSide then
+        iAltSideFor = values.AltSideData.For
     end
-    
-    local display = uiElements.scrollbox(uiElements.column({
-        collapsable.getCollapsable("(This)", freshForm(valuesW)),
-        collapsable.getCollapsable("B-Side", freshForm(valuesW))
-    }))
+
+    local display = uiElements.scrollbox(uiElements.column(collapsableList))
     -- make the scrollbox Actually Work
     display:hook({
-        calcWidth = function(orig, element)
-            return element.inner.width
+        calcWidth = function(_, element2)
+            return element2.inner.width
         end,
     }):with(uiUtils.fillHeight(true))
+
+    local altSideForField = uiElements.field(iAltSideFor):with({ minWidth = 180, maxWidth = 180 })
 
     display = uiElements.column({
         display,
         uiElements.row({
-            uiElements.button("Save changes", function() end),
+            uiElements.button("Save changes", function() save(fieldsByMap, altSideForField:getText()) end),
+            uiElements.label("//"):with(centrebound),
+            uiElements.button("Reset", function() end),
+            uiElements.label("//"):with(centrebound),
             uiElements.button("Add side", function() end),
-            uiElements.button("Reset", function() end)
+            uiElements.label("OR mark this as alt-side for:"):with(centrebound),
+            altSideForField,
         }):with(uiUtils.bottombound)
     }):with(uiUtils.fillHeight(true))
     
