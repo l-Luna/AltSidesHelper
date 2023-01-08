@@ -4,9 +4,7 @@ local languageRegistry = require("language_registry")
 
 local uiElements = require("ui.elements")
 local uiUtils = require("ui.utils")
-local notifications = require("ui.notification")
 local widgetUtils = require("ui.widgets.utils")
-local lists = require("ui.widgets.lists")
 local collapsable = require("ui.widgets.collapsable")
 local forms = require("ui.forms.form")
 
@@ -32,7 +30,7 @@ local function intoGroups(tables)
         group["fieldOrder"] = fields
         table.insert(groups, group)
     end
-    
+
     return groups
 end
 
@@ -78,7 +76,7 @@ local function intoDefaults(tables)
             end
         end
     end
-    
+
     return defaults
 end
 
@@ -134,14 +132,16 @@ local function save(fieldsByMap, altSideFor)
                 filteredData[k2] = v2
             end
         end
-        
-        if i == "(This)" then
-            filteredData.OverrideVanillaSideData = true
-        else
-            filteredData.Map = i
+
+        if altSidesMeta.tableLength(filteredData) ~= 0 then
+            if i == "(This)" then
+                filteredData.OverrideVanillaSideData = true
+            else
+                filteredData.Map = i
+            end
+
+            table.insert(sides, filteredData)
         end
-        
-        table.insert(sides, filteredData)
     end
 
     data.Sides = sides
@@ -188,18 +188,20 @@ function metaButton.open(_)
     local defaults = intoDefaults(altSidesMeta.orderedOptions)
     local collapsableList = {}
     local fieldsByMap = {}
+    local foundThis = false
     if values and values.Sides then
         for _, side in ipairs(values.Sides) do
             local sideValues = utils.deepcopy(defaults)
             for i, v in pairs(side) do
                 sideValues[i] = v
             end
-            
+
             local name = "<Unknown>"
             local startOpen = false
             if sideValues.OverrideVanillaSideData == true then
                 name = "(This)"
                 startOpen = true
+                foundThis = true
             elseif sideValues.Map ~= nil then
                 name = sideValues.Map
             end
@@ -209,6 +211,14 @@ function metaButton.open(_)
             table.insert(collapsableList, collapsable.getCollapsable(name, form, { startOpen = startOpen }))
         end
     end
+    if not foundThis then
+        local sideValues = utils.deepcopy(defaults)
+        local name = "(This)"
+        local form, fields = freshForm(sideValues)
+        fieldsByMap[name] = fields
+        table.insert(collapsableList, 1, collapsable.getCollapsable(name, form, { startOpen = true }))
+    end
+    
     local iAltSideFor = ""
     if values and values.AltSideData and values.AltSideData.IsAltSide then
         iAltSideFor = values.AltSideData.For
@@ -222,7 +232,8 @@ function metaButton.open(_)
         end,
     }):with(uiUtils.fillHeight(true))
 
-    local altSideForField = uiElements.field(iAltSideFor):with({ minWidth = 180, maxWidth = 180 })
+    local altSideToAddField = uiElements.field(""):with({ minWidth = 160, maxWidth = 160 })
+    local altSideForField = uiElements.field(iAltSideFor):with({ minWidth = 160, maxWidth = 160 })
 
     display = uiElements.column({
         display,
@@ -231,17 +242,18 @@ function metaButton.open(_)
             uiElements.label("//"):with(centrebound),
             uiElements.button("Reset", function() end),
             uiElements.label("//"):with(centrebound),
-            uiElements.button("Add side", function() end),
+            uiElements.button("Add side:", function() end),
+            altSideToAddField,
             uiElements.label("OR mark this as alt-side for:"):with(centrebound),
             altSideForField,
         }):with(uiUtils.bottombound)
     }):with(uiUtils.fillHeight(true))
-    
+
     local window = uiElements.window(windowTitle, display):with({
         x = windowX,
         y = windowY,
-        width = 750,
-        height = 660,
+        width = 830,
+        height = 650,
 
         updateHidden = true
     })
