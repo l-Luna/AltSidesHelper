@@ -144,14 +144,10 @@ end
 ---@param path string
 ---@return void
 function metaHelper.saveMetaToPath(meta, path)
-    local filesystem = require("utils.filesystem")
-    
-    if filesystem.isFile(path) then
-        ---@type file
-        local f = assert(io.open(path, "w"))
-        f:write(metaHelper.intoYaml(meta))
-        f:close()
-    end
+    ---@type file
+    local f = assert(io.open(path, "w"))
+    f:write(metaHelper.intoYaml(meta))
+    f:close()
 end
 
 --- saves the given metadata to the appropriate place for this map; does nothing if the map is not saved.
