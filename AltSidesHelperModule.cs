@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Monocle;
 using Microsoft.Xna.Framework;
 using System.Linq;
+using Mono.Cecil;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
 
@@ -72,6 +73,8 @@ namespace AltSidesHelper {
 			On.Celeste.LevelEnter.Routine += AddAltSideRemixTitle;
 
 			IL.Celeste.OuiJournalProgress.ctor += ModJournalProgressPageConstruct;
+			IL.Celeste.OuiJournalPoem.ctor += ModJournalPoemPageConstruct;
+			IL.Celeste.OuiJournalPoem.PoemLine.Render += ModJournalPoemLineRender;
 			
 			hook_OuiChapterPanel_set_option = new Hook(
 				typeof(OuiChapterPanel).GetProperty("option", BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true),
@@ -122,6 +125,8 @@ namespace AltSidesHelper {
 			On.Celeste.LevelEnter.Routine -= AddAltSideRemixTitle;
 
 			IL.Celeste.OuiJournalProgress.ctor -= ModJournalProgressPageConstruct;
+			IL.Celeste.OuiJournalPoem.ctor -= ModJournalPoemPageConstruct;
+			IL.Celeste.OuiJournalPoem.PoemLine.Render -= ModJournalPoemLineRender;
 
 			hook_OuiChapterPanel_set_option.Dispose();
 			hook_OuiChapterPanel_get_option.Dispose();
@@ -241,8 +246,8 @@ namespace AltSidesHelper {
 			return data;
 		}
 
-		private void ModJournalProgressPageConstruct(ILContext il) {
-			ILCursor cursor = new ILCursor(il);
+		private static void ModJournalProgressPageConstruct(ILContext il){
+			var cursor = new ILCursor(il);
 			if(cursor.TryGotoNext(MoveType.After,
 								instr => instr.Match(OpCodes.Box),
 								instr => instr.MatchCall<string>("Concat"))) {
@@ -287,6 +292,48 @@ namespace AltSidesHelper {
 						}
 						dyn["icons"] = cassettes.ToArray();
 						dyn["iconSpacing"] = -40f;
+					}
+					return orig;
+				});
+			}
+		}
+
+		private static void ModJournalPoemPageConstruct(ILContext il){
+			var cursor = new ILCursor(il);
+			// instance void Celeste.OuiJournalPoem/PoemLine::.ctor()
+			if(cursor.TryGotoNext(MoveType.After,
+				   instr => instr.MatchNewobj(out MethodReference v) && v.DeclaringType.Name.Equals("PoemLine"))){
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal poem page at {cursor.Index} in IL for OuiJournalPoem constructor, for custom hearts.");
+				cursor.Emit(OpCodes.Ldloc_2);
+				cursor.EmitDelegate<Func<object, string, object>>((line, id) => {
+					var lineData = new DynamicData(line);
+					lineData.Set("ASHPoemLineId", id);
+					return line;
+				});
+			}
+		}
+
+		private static void ModJournalPoemLineRender(ILContext il){
+			var cursor = new ILCursor(il);
+			// instance class Monocle.MTexture Monocle.Atlas::get_Item(string)
+			if(cursor.TryGotoNext(MoveType.After,
+				   instr => instr.MatchLdstr("heartgem0"))){
+				Logger.Log(LogLevel.Info, "AltSidesHelper", $"Modding journal poem line at {cursor.Index} in IL for OuiJournalPoem.PoemLine rendering, for custom hearts.");
+				// thank u collab utils
+				cursor.Emit(OpCodes.Ldarg_0); // this
+				cursor.EmitDelegate<Func<string, object, string>>((orig, self) => {
+					var selfData = new DynamicData(self);
+					if(selfData.TryGet("ASHPoemLineId", out string id)){
+						foreach(AreaData area in AreaData.Areas){
+							if(area.GetLevelSet() == SaveData.Instance?.GetLevelSet() && $"{area.SID}_a".ToLowerInvariant().DialogKeyify() == id){
+								var meta = GetModeMetaForAltSide(area);
+								if(meta is { OverrideHeartTextures: true }){
+									Logger.Log("AltSidesHelper", $"Changing journal heart colour for \"{area.SID}\".");
+									// use *our* gem
+									return meta.JournalHeartIcon;
+								}
+							}
+						}
 					}
 					return orig;
 				});
