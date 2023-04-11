@@ -1,0 +1,30 @@
+leppa_AltSidesHelper_overworld_remix3= D 面
+leppa_AltSidesHelper_areacomplete_dside= D 面完成
+leppa_AltSidesHelper_areacomplete_fullclear_bside= B 面通关
+leppa_AltSidesHelper_areacomplete_fullclear_cside= C 面通关
+leppa_AltSidesHelper_areacomplete_fullclear_dside= D 面通关
+
+leppa_AltSidesHelper_dside_unlocked= D 面解锁
+leppa_AltSidesHelper_high_difficulty= 别忘了休息一下，祝你好运！
+
+leppa_AltSidesHelper= Alt Sides Helper
+leppa_AltSidesHelper_AltSidesHelperTest= Alt-sides Helper 功能测试
+
+# It's just pico8 music but w/e
+leppa_AltSidesHelper_AltSidesHelperTest_B_remix= (Celeste Classic: Area 2)
+leppa_AltSidesHelper_AltSidesHelperTest_B_remix_artist= huh?
+leppa_AltSidesHelper_AltSidesHelperTest_B_remix_album= Celeste Classic for Pico8
+
+leppa_AltSidesHelper_AltSidesHelperTest_C_altsides_remix_intro= 
+		一个播放列表
+		由一些非常酷的人制作
+		请去听他们的
+		很棒很优秀的音乐
+		（别客气）
+
+poem_leppa_AltSidesHelper_AltSidesHelperTest_A= A 面之心
+poem_leppa_AltSidesHelper_AltSidesHelperTest_B_A= B 面之心
+poem_leppa_AltSidesHelper_AltSidesHelperTest_C_A= C 面之心
+poem_leppa_AltSidesHelper_AltSidesHelperTest_D_A= D 面之心
+
+leppa_AltSidesHelper_AltSidesHelperTest_Label= A 面

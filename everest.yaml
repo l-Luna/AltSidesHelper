@@ -1,5 +1,5 @@
 ﻿- Name: AltSidesHelper
-  Version: 1.7.0
+  Version: 1.7.1
   DLL: bin/Debug/AltSidesHelper.dll
   Dependencies:
     - Name: Everest
